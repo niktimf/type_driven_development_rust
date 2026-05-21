@@ -1,0 +1,13 @@
+# Cargo build artefacts
+target/
+debug/
+
+# rustfmt backup
+**/*.rs.bk
+
+# MSVC
+*.pdb
+
+# IDE
+.idea/
+.vscode/
