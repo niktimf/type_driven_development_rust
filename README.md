@@ -6,7 +6,7 @@
 
 | #   | Часть                                       | Статус        | Аннотация                                                       |
 |-----|---------------------------------------------|---------------|-----------------------------------------------------------------|
-| 1/4 | [Основы](articles/01-foundations.md)        | in progress   | newtype, ADT, пустые типы, phantom types, typestate             |
+| 1/4 | [Основы](articles/01-foundations.md)        | in progress   | newtype, ADT, uninhabited types, phantom types, typestate       |
 | 2/4 | [Контракты](articles/02-contracts.md)       | planned       | трейты, ассоциированные типы, const generics                    |
 | 3/4 | [Валидатор](articles/03-validator.md)       | planned       | типы-списки, compile-time валидаторы, event sourcing            |
 | 4/4 | [Nightly](articles/04-nightly.md)           | planned       | pattern types, const traits, gen-блоки                          |
