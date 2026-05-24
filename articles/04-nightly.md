@@ -6,3 +6,4 @@ _Черновик в работе._
 - Pattern types (RFC 3513)
 - Const traits
 - Gen-блоки (generators)
+- Never type (`!`) в позициях типа (`#![feature(never_type)]`) — нативный аналог `std::convert::Infallible` из Части 1
