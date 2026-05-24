@@ -11,3 +11,6 @@ debug/
 # IDE
 .idea/
 .vscode/
+
+# Reference book (do not commit)
+*.pdf
