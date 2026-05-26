@@ -21,6 +21,8 @@
 - [Generic Associated Types to be stable in Rust 1.65](https://blog.rust-lang.org/2022/10/28/gats-stabilization/) — Jack Huey, Rust lang team. _(проверить)_
 - [Shipping const generics in 2020](https://without.boats/blog/shipping-const-generics/) — without.boats о дизайне и мотивации `min_const_generics`. _(проверить)_
 - [Const generics MVP beta](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html) — Rust team announcement. _(проверить)_
+- [CGP — Context-Generic Programming](https://github.com/contextgeneric/cgp) — модульная парадигма поверх traits + associated types + GAT, работает на stable Rust 1.81+. Кандидат на closing-кейс раздела. Используется в IBC-relayer (Hermes).
+- [contextgeneric.dev](https://contextgeneric.dev) — доки CGP и книга «Context-Generic Programming Patterns».
 
 ## Часть 3 — Валидатор (типы-списки, compile-time валидаторы, event sourcing)
 
