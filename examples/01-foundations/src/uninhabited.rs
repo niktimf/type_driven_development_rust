@@ -1,4 +1,4 @@
-//! Раздел статьи «Uninhabited types» (типы без значений).
+//! Раздел статьи «Uninhabited types» (типы без значений) — на биржевом домене.
 //!
 //! Главный инструмент здесь — [`std::convert::Infallible`]: пустой enum, в котором
 //! значений не существует. Если в `Result<T, Infallible>` ветка `Err` физически
@@ -13,15 +13,16 @@ pub fn always_ok() -> Result<i32, Infallible> {
     Ok(42)
 }
 
-/// Newtype-обёртка над именем пользователя. Принимает любую строку, ошибиться
-/// в `from_str` физически не может — поэтому `type Err = Infallible`.
-pub struct Username(pub String);
+/// Клиентский идентификатор заявки (в FIX — clOrdID): произвольная строка, которую
+/// задаёт сам клиент. Принимаем что угодно, ошибиться в `from_str` физически нельзя —
+/// поэтому `type Err = Infallible`.
+pub struct ClientOrderId(pub String);
 
-impl FromStr for Username {
+impl FromStr for ClientOrderId {
     type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Username(s.to_string()))
+        Ok(ClientOrderId(s.to_string()))
     }
 }
 
@@ -41,19 +42,19 @@ mod tests {
     }
 
     #[test]
-    fn username_from_str_is_infallible() {
-        // `.parse()` для Username возвращает Result<_, Infallible>.
+    fn client_order_id_from_str_is_infallible() {
+        // `.parse()` для ClientOrderId возвращает Result<_, Infallible>.
         // Err невозможна — unwrap по построению не упадёт.
-        let name: Username = "alice".parse().unwrap();
-        assert_eq!(name.0, "alice");
+        let id: ClientOrderId = "order-2026-0001".parse().unwrap();
+        assert_eq!(id.0, "order-2026-0001");
     }
 
     #[test]
-    fn username_accepts_arbitrary_input() {
+    fn client_order_id_accepts_arbitrary_input() {
         // Принимаем что угодно: пустая строка, юникод, эмодзи.
-        for raw in ["", "alice", "Иван", "🦀", "  spaces  "] {
-            let name: Username = raw.parse().unwrap();
-            assert_eq!(name.0, raw);
+        for raw in ["", "abc-123", "Заявка", "🦀", "  spaces  "] {
+            let id: ClientOrderId = raw.parse().unwrap();
+            assert_eq!(id.0, raw);
         }
     }
 }

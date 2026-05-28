@@ -1,22 +1,27 @@
 //! Раздел статьи «Phantom types» — параметры типа без рантайм-представления.
 //!
-//! Идея: одна generic-структура [`Id<Tag>`], много типов-маркеров. В памяти
-//! `Id<User>` и `Id<Order>` — это один и тот же `u64`, но компилятор их различает.
+//! Две демонстрации на биржевом домене:
+//! - [`Id<Tag>`] — одна generic-структура, много типов-маркеров. В памяти
+//!   `Id<Order>` и `Id<Instrument>` — один и тот же `u64`, но компилятор их различает.
+//! - [`Money<Currency>`] — валюта как phantom-тег: сложить `Money<Usd>` и `Money<Eur>`
+//!   компилятор не даст, хотя внутри обоих один `Decimal`.
 
 use std::marker::PhantomData;
+
+use rust_decimal::Decimal;
 
 /// Generic-идентификатор с phantom-тегом. Все `Id<Tag>` в рантайме — это
 /// 8 байт `u64`; разница между маркерами существует только на этапе компиляции.
 ///
-/// Пример из статьи: `UserId` нельзя передать в функцию, ожидающую `OrderId`.
+/// Пример из статьи: `InstrumentId` нельзя передать в функцию, ожидающую `OrderId`.
 ///
 /// ```compile_fail
-/// use tdd_01_foundations::phantom::{Id, OrderId, UserId};
+/// use tdd_01_foundations::phantom::{Id, OrderId, InstrumentId};
 ///
 /// fn cancel_order(_id: OrderId) {}
 ///
-/// let user: UserId = Id::new(42);
-/// cancel_order(user); // expected `Id<Order>`, found `Id<User>`
+/// let instrument: InstrumentId = Id::new(42);
+/// cancel_order(instrument); // expected `Id<Order>`, found `Id<Instrument>`
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Id<Tag> {
@@ -37,56 +42,107 @@ impl<Tag> Id<Tag> {
     }
 }
 
-/// Маркер пользователя. Derive-ы навешены, чтобы `#[derive(...)]` на `Id<Tag>`
+/// Маркер заказа. Derive-ы навешены, чтобы `#[derive(...)]` на `Id<Tag>`
 /// работал — он добавляет bound `Tag: Debug + Clone + ...` на сгенерированный impl.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct User;
-
-/// Маркер заказа — аналогично.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Order;
 
-pub type UserId = Id<User>;
+/// Маркер инструмента — аналогично.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Instrument;
+
 pub type OrderId = Id<Order>;
+pub type InstrumentId = Id<Instrument>;
+
+/// Валюта как phantom-тег. Внутри — `Decimal` (десятичные деньги из newtype-раздела),
+/// но `Money<Usd>` и `Money<Eur>` — разные типы, и сложить их компилятор не даст.
+///
+/// ```compile_fail
+/// use tdd_01_foundations::phantom::{Money, Usd, Eur};
+/// use rust_decimal::dec;
+///
+/// let usd = Money::<Usd>::new(dec!(100));
+/// let eur = Money::<Eur>::new(dec!(100));
+/// let _ = usd + eur; // cannot add `Money<Eur>` to `Money<Usd>`
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Money<Currency> {
+    amount: Decimal,
+    _currency: PhantomData<Currency>,
+}
+
+impl<Currency> Money<Currency> {
+    pub const fn new(amount: Decimal) -> Self {
+        Self {
+            amount,
+            _currency: PhantomData,
+        }
+    }
+
+    pub const fn amount(&self) -> Decimal {
+        self.amount
+    }
+}
+
+/// Сложить можно только деньги одной валюты: оба операнда — `Money<Currency>` с
+/// одним и тем же `Currency`. `Money<Usd> + Money<Eur>` не компилируется.
+impl<Currency> std::ops::Add for Money<Currency> {
+    type Output = Money<Currency>;
+
+    fn add(self, rhs: Money<Currency>) -> Money<Currency> {
+        Money::new(self.amount + rhs.amount)
+    }
+}
+
+/// Доллар США.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Usd;
+
+/// Евро.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Eur;
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rust_decimal::dec;
     use std::mem::size_of;
 
     #[test]
     fn phantom_does_not_add_runtime_overhead() {
         // PhantomData<Tag> в рантайме отсутствует — размер равен u64.
-        assert_eq!(size_of::<Id<User>>(), size_of::<u64>());
         assert_eq!(size_of::<Id<Order>>(), size_of::<u64>());
-        assert_eq!(size_of::<UserId>(), 8);
+        assert_eq!(size_of::<Id<Instrument>>(), size_of::<u64>());
+        assert_eq!(size_of::<OrderId>(), 8);
     }
 
     #[test]
-    fn user_id_and_order_id_carry_the_same_payload() {
-        let user: UserId = Id::new(42);
+    fn order_id_and_instrument_id_carry_the_same_payload() {
         let order: OrderId = Id::new(42);
+        let instrument: InstrumentId = Id::new(42);
         // payload одинаковый, типы — разные (что и проверяет compile_fail-доктест).
-        assert_eq!(user.raw(), order.raw());
+        assert_eq!(order.raw(), instrument.raw());
     }
 
     #[test]
     fn generic_method_works_for_all_tags() {
         // Один impl<Tag> Id<Tag> обслуживает оба варианта без дублирования.
-        let user = UserId::new(1);
-        let order = OrderId::new(2);
-        assert_eq!(user.raw(), 1);
-        assert_eq!(order.raw(), 2);
+        let order = OrderId::new(1);
+        let instrument = InstrumentId::new(2);
+        assert_eq!(order.raw(), 1);
+        assert_eq!(instrument.raw(), 2);
     }
 
     #[test]
-    fn ids_with_same_tag_compare_equal() {
-        // Одинаковые tag + одинаковый payload — равны.
-        let a: UserId = Id::new(7);
-        let b: UserId = Id::new(7);
-        assert_eq!(a, b);
+    fn same_currency_money_adds() {
+        let a = Money::<Usd>::new(dec!(100.50));
+        let b = Money::<Usd>::new(dec!(0.25));
+        assert_eq!((a + b).amount(), dec!(100.75));
+    }
 
-        let c: UserId = Id::new(8);
-        assert_ne!(a, c);
+    #[test]
+    fn money_tag_does_not_add_overhead() {
+        // Внутри только Decimal — phantom-валюта ничего не весит.
+        assert_eq!(size_of::<Money<Usd>>(), size_of::<Decimal>());
     }
 }

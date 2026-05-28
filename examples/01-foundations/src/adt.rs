@@ -1,315 +1,201 @@
-//! Раздел статьи «ADT (алгебраические типы данных)».
+//! Раздел статьи «ADT (алгебраические типы данных)» — на биржевом домене.
 //!
-//! - [`Role`] — enum без данных в вариантах (просто метки).
-//! - [`Token`] — enum с tuple-полями.
-//! - [`FileMode`] — enum, заменяющий пару `(bool, bool)` с одним невалидным сочетанием.
-//! - [`AuthOutcome`] — enum со смешанными формами вариантов; есть методы и `Display`.
-//! - [`AuthEvent`] — вложенный ADT (внутри одного варианта — другой enum).
+//! - [`Side`] (из [`crate::newtype::market`]) — enum без данных, просто метка.
+//! - [`OrderType`] — центральный пример: `Market` физически не несёт цены, поэтому
+//!   «рыночный ордер с лимитной ценой» в типе невыразим. Показывает все три формы
+//!   вариантов сразу (без данных / tuple / именованные поля), методы и `Display`.
+//! - [`OrderEvent`] / [`CancelReason`] — вложенный ADT (внутри варианта — другой enum).
 
 use std::fmt;
-use std::net::IpAddr;
-use std::time::{Duration, Instant};
 
-use crate::newtype::ids::UserId;
+use crate::newtype::market::{Price, Quantity, Side};
 
-/// Сессионный токен — отдельный newtype, чтобы не путать его с другими строками.
-#[derive(Clone, Debug)]
-pub struct SessionToken(pub String);
-
-/// Enum без данных в вариантах — каждый вариант это просто метка.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Role {
-    Admin,
-    User,
-    Guest,
-}
-
-/// Enum с tuple-полями — каждое значение несёт `String`, но варианты различимы.
-#[derive(Debug, Clone)]
-pub enum Token {
-    Bearer(String),
-    ApiKey(String),
-    Jwt(String),
-}
-
-/// Замена двум независимым `bool`-ам `(read, write)`. Из четырёх сочетаний
-/// валидны только три, и в enum-е невалидного просто нет.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FileMode {
-    Read,
-    Write,
-    ReadWrite,
-}
-
-/// Enum, в котором сочетаются разные формы вариантов:
-/// - `InvalidCredentials` — без данных;
-/// - `RateLimited { retry_after }` — с одним именованным полем;
-/// - `Success { user_id, session }` — с несколькими именованными полями.
+/// Тип заявки. Наивно его моделируют через `is_market: bool` + `Option<Price>`,
+/// и тогда представимы бессмысленные сочетания: рыночная заявка с ценой или
+/// лимитная без цены. Здесь таких состояний просто нет — у `Market` нет поля цены.
 ///
-/// Невозможные сочетания (например, «Success без сессии») в типе не выражаются.
+/// Показывает три формы вариантов в одном enum:
+/// - `Market` — без данных;
+/// - `Limit(Price)` — tuple-вариант с одним полем;
+/// - `StopLimit { stop, limit }` — несколько именованных полей.
+///
+/// `match` по `OrderType` обязан покрыть все варианты:
 ///
 /// ```compile_fail
-/// use tdd_01_foundations::adt::AuthOutcome;
+/// use tdd_01_foundations::adt::OrderType;
 ///
-/// fn describe(outcome: &AuthOutcome) -> &'static str {
-///     match outcome {
-///         AuthOutcome::Success { .. } => "ok",
-///         AuthOutcome::InvalidCredentials => "invalid",
-///         // не покрыли остальные варианты — error[E0004]: non-exhaustive patterns
+/// fn needs_price(ot: &OrderType) -> bool {
+///     match ot {
+///         OrderType::Market => false,
+///         // не покрыли Limit / StopLimit — error[E0004]: non-exhaustive patterns
 ///     }
 /// }
 /// ```
-#[derive(Debug, Clone)]
-pub enum AuthOutcome {
-    Success {
-        user_id: UserId,
-        session: SessionToken,
-    },
-    InvalidCredentials,
-    AccountLocked {
-        until: Instant,
-    },
-    RateLimited {
-        retry_after: Duration,
-    },
-    PasswordExpired {
-        user_id: UserId,
-    },
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OrderType {
+    Market,
+    Limit(Price),
+    StopLimit { stop: Price, limit: Price },
 }
 
-impl AuthOutcome {
-    /// Самый частый запрос к `AuthOutcome` — «получилось ли войти?».
-    pub fn is_success(&self) -> bool {
-        matches!(self, AuthOutcome::Success { .. })
+impl OrderType {
+    /// Рыночная ли заявка.
+    pub fn is_market(&self) -> bool {
+        matches!(self, OrderType::Market)
     }
 
-    /// Достать `UserId`, если он есть в текущем варианте. Wildcard `_` подходит,
-    /// когда от остальных вариантов в этой ветке ничего не нужно.
-    pub fn user_id(&self) -> Option<UserId> {
+    /// Лимитная цена, если она у этого типа есть. Варианты перечислены явно:
+    /// при добавлении нового типа компилятор заставит решить, есть ли у него цена.
+    pub fn limit_price(&self) -> Option<Price> {
         match self {
-            AuthOutcome::Success { user_id, .. } => Some(*user_id),
-            AuthOutcome::PasswordExpired { user_id } => Some(*user_id),
-            _ => None,
+            OrderType::Limit(price) => Some(*price),
+            OrderType::StopLimit { limit, .. } => Some(*limit),
+            OrderType::Market => None,
         }
     }
 }
 
-impl fmt::Display for AuthOutcome {
+impl fmt::Display for OrderType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AuthOutcome::Success { .. } => write!(f, "ok"),
-            AuthOutcome::InvalidCredentials => write!(f, "invalid credentials"),
-            AuthOutcome::AccountLocked { .. } => write!(f, "account locked"),
-            AuthOutcome::RateLimited { .. } => write!(f, "rate limited"),
-            AuthOutcome::PasswordExpired { .. } => write!(f, "password expired"),
+            OrderType::Market => write!(f, "market"),
+            OrderType::Limit(_) => write!(f, "limit"),
+            OrderType::StopLimit { .. } => write!(f, "stop-limit"),
         }
     }
 }
 
-/// Вложенный ADT: `AuthEvent::Attempt` содержит внутри другой enum (`AuthOutcome`).
-///
-/// `match` на `AuthEvent` обязан покрыть все варианты, и внутри `AuthEvent::Attempt`
-/// `match` на `AuthOutcome` тоже должен быть исчерпывающим. Exhaustive check работает
-/// на любой глубине вложенности.
-#[derive(Debug, Clone)]
-pub enum AuthEvent {
-    Attempt {
-        outcome: AuthOutcome,
-        ip: IpAddr,
-        at: Instant,
+/// Причина отмены — маленький enum, чтобы показать вложение в [`OrderEvent`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CancelReason {
+    ByUser,
+    Expired,
+}
+
+/// Вложенный ADT: `OrderEvent::Accepted` содержит внутри другой enum (`OrderType`).
+/// `match` остаётся исчерпывающим на любой глубине.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OrderEvent {
+    Accepted {
+        order_type: OrderType,
+        side: Side,
     },
-    Logout {
-        user_id: UserId,
-        at: Instant,
+    Filled {
+        price: Price,
+        quantity: Quantity,
     },
-    PasswordChanged {
-        user_id: UserId,
-        at: Instant,
+    Cancelled {
+        reason: CancelReason,
     },
 }
 
-/// Краткое строковое описание исхода логина — демонстрация `match` по `AuthOutcome`.
-pub fn describe_outcome(outcome: &AuthOutcome) -> &'static str {
-    match outcome {
-        AuthOutcome::Success { .. } => "ok",
-        AuthOutcome::InvalidCredentials => "invalid",
-        AuthOutcome::AccountLocked { .. } => "locked",
-        AuthOutcome::RateLimited { .. } => "throttled",
-        AuthOutcome::PasswordExpired { .. } => "expired",
+/// Краткое описание типа заявки — демонстрация `match` по `OrderType`.
+pub fn describe_order_type(order_type: &OrderType) -> &'static str {
+    match order_type {
+        OrderType::Market => "market",
+        OrderType::Limit(_) => "limit",
+        OrderType::StopLimit { .. } => "stop-limit",
     }
 }
 
-/// Двухуровневый `match`: сначала по `AuthEvent`, внутри `Attempt` — по `AuthOutcome`.
-pub fn describe_event(event: &AuthEvent) -> &'static str {
+/// Двухуровневый `match`: сначала по `OrderEvent`, внутри `Accepted` — по `OrderType`.
+pub fn describe_event(event: &OrderEvent) -> &'static str {
     match event {
-        AuthEvent::Attempt { outcome, .. } => match outcome {
-            AuthOutcome::Success { .. } => "attempt: ok",
-            AuthOutcome::InvalidCredentials => "attempt: invalid",
-            AuthOutcome::AccountLocked { .. } => "attempt: locked",
-            AuthOutcome::RateLimited { .. } => "attempt: throttled",
-            AuthOutcome::PasswordExpired { .. } => "attempt: expired",
+        OrderEvent::Accepted { order_type, .. } => match order_type {
+            OrderType::Market => "accepted: market",
+            OrderType::Limit(_) => "accepted: limit",
+            OrderType::StopLimit { .. } => "accepted: stop-limit",
         },
-        AuthEvent::Logout { .. } => "logout",
-        AuthEvent::PasswordChanged { .. } => "password changed",
+        OrderEvent::Filled { .. } => "filled",
+        OrderEvent::Cancelled { .. } => "cancelled",
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::net::Ipv4Addr;
+    use rust_decimal::dec;
 
-    fn sample_outcomes() -> Vec<AuthOutcome> {
-        vec![
-            AuthOutcome::Success {
-                user_id: UserId(1),
-                session: SessionToken("session-token".into()),
-            },
-            AuthOutcome::InvalidCredentials,
-            AuthOutcome::AccountLocked {
-                until: Instant::now(),
-            },
-            AuthOutcome::RateLimited {
-                retry_after: Duration::from_secs(30),
-            },
-            AuthOutcome::PasswordExpired {
-                user_id: UserId(1),
-            },
-        ]
-    }
-
-    #[test]
-    fn each_outcome_describes_to_unique_string() {
-        let descriptions: Vec<_> = sample_outcomes().iter().map(describe_outcome).collect();
-        assert_eq!(
-            descriptions,
-            ["ok", "invalid", "locked", "throttled", "expired"]
-        );
-    }
-
-    #[test]
-    fn role_variants_compare_by_value() {
-        assert_eq!(Role::Admin, Role::Admin);
-        assert_ne!(Role::Admin, Role::User);
-        assert_ne!(Role::User, Role::Guest);
-    }
-
-    #[test]
-    fn tuple_variants_carry_their_payload() {
-        let tokens = [
-            Token::Bearer("abc".into()),
-            Token::ApiKey("xyz".into()),
-            Token::Jwt("eyJ...".into()),
-        ];
-
-        // Каждый вариант различим в match, payload доступен.
-        let kinds: Vec<_> = tokens
-            .iter()
-            .map(|t| match t {
-                Token::Bearer(_) => "bearer",
-                Token::ApiKey(_) => "api-key",
-                Token::Jwt(_) => "jwt",
-            })
-            .collect();
-
-        assert_eq!(kinds, ["bearer", "api-key", "jwt"]);
-    }
-
-    #[test]
-    fn file_mode_has_no_invalid_state() {
-        // Демонстрация: четвёртое сочетание (false, false) в типе просто отсутствует.
-        let valid_modes = [FileMode::Read, FileMode::Write, FileMode::ReadWrite];
-        assert_eq!(valid_modes.len(), 3);
-    }
-
-    #[test]
-    fn is_success_matches_only_success_variant() {
-        let success = AuthOutcome::Success {
-            user_id: UserId(1),
-            session: SessionToken("s".into()),
+    fn price(v: &str) -> Price {
+        // В тестах собираем Price напрямую через спецификацию инструмента.
+        use crate::newtype::market::{InstrumentSpec, LotSize, TickSize};
+        let spec = InstrumentSpec {
+            tick_size: TickSize::new(dec!(0.01)).unwrap(),
+            lot_size: LotSize::new(dec!(1)).unwrap(),
         };
-        let invalid = AuthOutcome::InvalidCredentials;
-        let expired = AuthOutcome::PasswordExpired { user_id: UserId(1) };
-
-        assert!(success.is_success());
-        assert!(!invalid.is_success());
-        assert!(!expired.is_success());
+        spec.price(v.parse().unwrap()).unwrap()
     }
 
     #[test]
-    fn user_id_returns_for_variants_that_carry_it() {
-        let success = AuthOutcome::Success {
-            user_id: UserId(42),
-            session: SessionToken("s".into()),
-        };
-        let expired = AuthOutcome::PasswordExpired { user_id: UserId(42) };
-        let invalid = AuthOutcome::InvalidCredentials;
-        let locked = AuthOutcome::AccountLocked {
-            until: Instant::now(),
-        };
-
-        assert_eq!(success.user_id(), Some(UserId(42)));
-        assert_eq!(expired.user_id(), Some(UserId(42)));
-        assert_eq!(invalid.user_id(), None);
-        assert_eq!(locked.user_id(), None);
+    fn market_order_has_no_price() {
+        // Ключевой инвариант: у рыночной заявки цены нет в принципе.
+        assert_eq!(OrderType::Market.limit_price(), None);
+        assert!(OrderType::Market.is_market());
     }
 
     #[test]
-    fn display_format_for_each_variant() {
-        let descriptions: Vec<_> = sample_outcomes()
-            .iter()
-            .map(|o| format!("{o}"))
-            .collect();
+    fn limit_and_stop_limit_expose_their_price() {
+        let p = price("185.50");
+        assert_eq!(OrderType::Limit(p).limit_price(), Some(p));
 
-        assert_eq!(
-            descriptions,
-            [
-                "ok",
-                "invalid credentials",
-                "account locked",
-                "rate limited",
-                "password expired",
-            ]
-        );
+        let sl = OrderType::StopLimit {
+            stop: price("180.00"),
+            limit: price("181.00"),
+        };
+        assert_eq!(sl.limit_price(), Some(price("181.00")));
+        assert!(!sl.is_market());
+    }
+
+    #[test]
+    fn order_type_displays_its_kind() {
+        assert_eq!(OrderType::Market.to_string(), "market");
+        assert_eq!(OrderType::Limit(price("185.50")).to_string(), "limit");
     }
 
     #[test]
     fn nested_match_dispatches_through_both_layers() {
-        let ip = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
-
-        let events = vec![
-            AuthEvent::Attempt {
-                outcome: AuthOutcome::Success {
-                    user_id: UserId(1),
-                    session: SessionToken("s".into()),
+        let events = [
+            OrderEvent::Accepted {
+                order_type: OrderType::Limit(price("185.50")),
+                side: Side::Buy,
+            },
+            OrderEvent::Accepted {
+                order_type: OrderType::Market,
+                side: Side::Sell,
+            },
+            OrderEvent::Filled {
+                price: price("185.50"),
+                quantity: {
+                    use crate::newtype::market::{InstrumentSpec, LotSize, TickSize};
+                    let spec = InstrumentSpec {
+                        tick_size: TickSize::new(dec!(0.01)).unwrap(),
+                        lot_size: LotSize::new(dec!(1)).unwrap(),
+                    };
+                    spec.quantity(dec!(10)).unwrap()
                 },
-                ip,
-                at: Instant::now(),
             },
-            AuthEvent::Attempt {
-                outcome: AuthOutcome::InvalidCredentials,
-                ip,
-                at: Instant::now(),
-            },
-            AuthEvent::Logout {
-                user_id: UserId(1),
-                at: Instant::now(),
-            },
-            AuthEvent::PasswordChanged {
-                user_id: UserId(1),
-                at: Instant::now(),
+            OrderEvent::Cancelled {
+                reason: CancelReason::ByUser,
             },
         ];
 
         let descriptions: Vec<_> = events.iter().map(describe_event).collect();
         assert_eq!(
             descriptions,
-            [
-                "attempt: ok",
-                "attempt: invalid",
-                "logout",
-                "password changed"
-            ]
+            ["accepted: limit", "accepted: market", "filled", "cancelled"]
+        );
+    }
+
+    #[test]
+    fn describe_order_type_covers_each_variant() {
+        assert_eq!(describe_order_type(&OrderType::Market), "market");
+        assert_eq!(describe_order_type(&OrderType::Limit(price("1.00"))), "limit");
+        assert_eq!(
+            describe_order_type(&OrderType::StopLimit {
+                stop: price("1.00"),
+                limit: price("1.01"),
+            }),
+            "stop-limit"
         );
     }
 }

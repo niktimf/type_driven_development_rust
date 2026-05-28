@@ -1,175 +1,182 @@
 //! Раздел статьи «Typestate» — состояние объекта закодировано в его типе.
 //!
-//! Машина состояний на примере двухфакторной авторизации:
+//! Жизненный цикл заявки на бирже:
 //!
 //! ```text
-//! AwaitingCredentials --submit_credentials--> AwaitingSecondFactor
-//!                                              |
-//!                                              | submit_totp
-//!                                              v
-//!                                          Authenticated --create_session--> Session
+//! DraftOrder --submit--> WorkingOrder --fill----> FilledOrder
+//!                            |
+//!                            \---cancel--------> CancelledOrder
 //! ```
 //!
-//! Каждый переход потребляет `self` (`fn ... (self, ...)`), и старое состояние
-//! после перехода физически уничтожено. Вызвать метод не того состояния
-//! не получится — он отсутствует в `impl`-блоке.
+//! Каждый переход потребляет `self`, и старое состояние после перехода физически
+//! уничтожено. Вызвать метод не того состояния не получится — его нет в `impl`-блоке.
+//! В частности, у `CancelledOrder` нет методов, чтобы «висеть в стакане»: отменённая
+//! заявка не может снова стать активной.
 
-use crate::newtype::ids::UserId;
+use crate::newtype::ids::OrderId;
+use crate::newtype::market::{InstrumentId, Price, Quantity, Side};
 
+/// Биржа отклонила заявку при постановке.
 #[derive(Debug, PartialEq, Eq)]
-pub enum AuthError {
-    UserNotFound,
-    InvalidCredentials,
-    InvalidTotp,
+pub enum RejectReason {
+    MarketClosed,
+    InsufficientFunds,
 }
 
-pub struct Session {
-    user_id: UserId,
-}
-
-impl Session {
-    fn new(user_id: UserId) -> Self {
-        Self { user_id }
-    }
-
-    pub fn user_id(&self) -> UserId {
-        self.user_id
-    }
-}
-
-/// Начальное состояние логина — никаких данных ещё нет.
+/// Черновик заявки — ещё не отправлен на биржу, биржевого идентификатора нет.
 ///
 /// Compile-fail: метод не своего состояния не вызвать.
 ///
 /// ```compile_fail
-/// use tdd_01_foundations::typestate::AwaitingCredentials;
+/// use tdd_01_foundations::typestate::DraftOrder;
 ///
-/// let attempt = AwaitingCredentials::new();
-/// attempt.create_session(); // no method `create_session` on AwaitingCredentials
+/// let order = DraftOrder::new(/* ... */);
+/// order.cancel(); // no method `cancel` on DraftOrder — отменять нечего, ещё не подан
 /// ```
 ///
 /// ```compile_fail
-/// use tdd_01_foundations::typestate::AwaitingCredentials;
+/// use tdd_01_foundations::typestate::DraftOrder;
 ///
-/// let attempt = AwaitingCredentials::new();
-/// attempt.submit_totp("123456"); // no method `submit_totp` on AwaitingCredentials
+/// let order = DraftOrder::new(/* ... */);
+/// let _first = order.submit();
+/// let _second = order.submit(); // order moved — повторно подать нельзя
 /// ```
-///
-/// ```compile_fail
-/// use tdd_01_foundations::typestate::AwaitingCredentials;
-///
-/// let attempt = AwaitingCredentials::new();
-/// let _first = attempt.submit_credentials("alice", "correct");
-/// let _second = attempt.submit_credentials("alice", "correct"); // attempt moved
-/// ```
-pub struct AwaitingCredentials;
+pub struct DraftOrder {
+    instrument: InstrumentId,
+    side: Side,
+    price: Price,
+    quantity: Quantity,
+}
 
-impl AwaitingCredentials {
-    pub fn new() -> Self {
-        Self
+impl DraftOrder {
+    pub fn new(instrument: InstrumentId, side: Side, price: Price, quantity: Quantity) -> Self {
+        Self {
+            instrument,
+            side,
+            price,
+            quantity,
+        }
     }
 
-    /// Проверка пары username/password. В реальном коде здесь поход в БД
-    /// и `Password::verify`. Здесь — упрощённо: знаем одного пользователя.
-    pub fn submit_credentials(
-        self,
-        username: &str,
-        password: &str,
-    ) -> Result<AwaitingSecondFactor, AuthError> {
-        if username != "alice" {
-            return Err(AuthError::UserNotFound);
-        }
-        if password != "correct" {
-            return Err(AuthError::InvalidCredentials);
-        }
-        Ok(AwaitingSecondFactor {
-            user_id: UserId(42),
+    /// Постановка в стакан. Биржа присваивает идентификатор и может отклонить заявку.
+    pub fn submit(self) -> Result<WorkingOrder, RejectReason> {
+        // В реальном коде — поход на биржу. Здесь упрощённо: всегда принимаем
+        // и выдаём фиксированный id.
+        Ok(WorkingOrder {
+            id: OrderId(1),
+            instrument: self.instrument,
+            side: self.side,
+            price: self.price,
+            quantity: self.quantity,
         })
     }
 }
 
-impl Default for AwaitingCredentials {
-    fn default() -> Self {
-        Self::new()
+/// Активная заявка «в стакане». Уже есть биржевой идентификатор.
+pub struct WorkingOrder {
+    id: OrderId,
+    instrument: InstrumentId,
+    side: Side,
+    price: Price,
+    quantity: Quantity,
+}
+
+impl WorkingOrder {
+    pub fn id(&self) -> OrderId {
+        self.id
     }
-}
 
-/// Пароль уже прошёл. Ждём второй фактор.
-pub struct AwaitingSecondFactor {
-    user_id: UserId,
-}
+    pub fn instrument(&self) -> InstrumentId {
+        self.instrument
+    }
 
-impl AwaitingSecondFactor {
-    pub fn submit_totp(self, code: &str) -> Result<Authenticated, AuthError> {
-        if code != "123456" {
-            return Err(AuthError::InvalidTotp);
+    pub fn side(&self) -> Side {
+        self.side
+    }
+
+    /// Полное исполнение — переход в терминальное состояние.
+    pub fn fill(self) -> FilledOrder {
+        FilledOrder {
+            id: self.id,
+            price: self.price,
+            quantity: self.quantity,
         }
-        Ok(Authenticated {
-            user_id: self.user_id,
-        })
+    }
+
+    /// Отмена — другое терминальное состояние.
+    pub fn cancel(self) -> CancelledOrder {
+        CancelledOrder { id: self.id }
     }
 }
 
-/// Оба фактора прошли. Можно создавать сессию.
-pub struct Authenticated {
-    user_id: UserId,
+/// Исполненная заявка. Терминальное состояние: переходов из него нет.
+pub struct FilledOrder {
+    id: OrderId,
+    price: Price,
+    quantity: Quantity,
 }
 
-impl Authenticated {
-    pub fn user_id(&self) -> UserId {
-        self.user_id
+impl FilledOrder {
+    pub fn id(&self) -> OrderId {
+        self.id
     }
 
-    pub fn create_session(self) -> Session {
-        Session::new(self.user_id)
+    pub fn price(&self) -> Price {
+        self.price
+    }
+
+    pub fn quantity(&self) -> Quantity {
+        self.quantity
+    }
+}
+
+/// Отменённая заявка. Терминальное состояние: методов «снова стать активной» нет.
+pub struct CancelledOrder {
+    id: OrderId,
+}
+
+impl CancelledOrder {
+    pub fn id(&self) -> OrderId {
+        self.id
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::newtype::market::{InstrumentSpec, LotSize, TickSize};
+    use rust_decimal::dec;
 
-    #[test]
-    fn successful_two_factor_flow() {
-        let attempt = AwaitingCredentials::new();
-        let in_progress = attempt
-            .submit_credentials("alice", "correct")
-            .expect("valid creds");
-        let authenticated = in_progress.submit_totp("123456").expect("valid totp");
-        let session = authenticated.create_session();
-        assert_eq!(session.user_id(), UserId(42));
+    fn draft() -> DraftOrder {
+        let spec = InstrumentSpec {
+            tick_size: TickSize::new(dec!(0.01)).unwrap(),
+            lot_size: LotSize::new(dec!(1)).unwrap(),
+        };
+        DraftOrder::new(
+            InstrumentId(1),
+            Side::Buy,
+            spec.price(dec!(185.50)).unwrap(),
+            spec.quantity(dec!(10)).unwrap(),
+        )
     }
 
     #[test]
-    fn unknown_user_returns_user_not_found() {
-        let attempt = AwaitingCredentials::new();
-        let result = attempt.submit_credentials("bob", "correct");
-        assert_eq!(result.err(), Some(AuthError::UserNotFound));
+    fn draft_submits_to_working() {
+        let working = draft().submit().expect("accepted");
+        assert_eq!(working.id(), OrderId(1));
     }
 
     #[test]
-    fn wrong_password_returns_invalid_credentials() {
-        let attempt = AwaitingCredentials::new();
-        let result = attempt.submit_credentials("alice", "wrong");
-        assert_eq!(result.err(), Some(AuthError::InvalidCredentials));
+    fn working_order_fills() {
+        let filled = draft().submit().unwrap().fill();
+        assert_eq!(filled.id(), OrderId(1));
+        assert_eq!(filled.price().amount(), dec!(185.50));
+        assert_eq!(filled.quantity().amount(), dec!(10));
     }
 
     #[test]
-    fn wrong_totp_returns_invalid_totp() {
-        let in_progress = AwaitingCredentials::new()
-            .submit_credentials("alice", "correct")
-            .expect("valid creds");
-        let result = in_progress.submit_totp("000000");
-        assert_eq!(result.err(), Some(AuthError::InvalidTotp));
-    }
-
-    #[test]
-    fn authenticated_exposes_user_id() {
-        let authenticated = AwaitingCredentials::new()
-            .submit_credentials("alice", "correct")
-            .unwrap()
-            .submit_totp("123456")
-            .unwrap();
-        assert_eq!(authenticated.user_id(), UserId(42));
+    fn working_order_cancels() {
+        let cancelled = draft().submit().unwrap().cancel();
+        assert_eq!(cancelled.id(), OrderId(1));
     }
 }
