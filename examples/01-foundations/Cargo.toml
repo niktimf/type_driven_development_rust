@@ -6,3 +6,4 @@ publish = false
 
 [dependencies]
 argon2 = { version = "0.5", features = ["std"] }
+rust_decimal = { version = "1", features = ["macros"] }
