@@ -1,4 +1,4 @@
-# Type-driven development в Rust. Newtype, ADT, uninhabited types, phantom types, typestate. Часть 1/4
+# Type-driven development в Rust. Часть 1/5: делаем недопустимые состояния невыразимыми — newtype, ADT, uninhabited types, phantom types, typestate
 
 Часто при проектировании сервиса кажется, что модель данных простая и закрытая: пользователь, заказ, токен сессии.
 Всё выглядит логично — ровно до момента, когда окажется, что типы допускают кучу комбинаций полей, которых быть не должно.

@@ -1,4 +1,4 @@
-# Type-driven development в Rust. Часть 2/4: Контракты
+# Type-driven development в Rust. Часть 2/5: задаём контракты между компонентами — трейты, associated types, const generics
 
 _Черновик в работе._
 

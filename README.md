@@ -1,19 +1,20 @@
 # Type-driven development в Rust
 
-Серия из 4 технических статей для Habr и компилируемые примеры кода к ним.
+Серия из 5 технических статей для Habr и компилируемые примеры кода к ним.
 
 ## Статьи
 
 | #   | Часть                                       | Статус        | Аннотация                                                       |
 |-----|---------------------------------------------|---------------|-----------------------------------------------------------------|
-| 1/4 | [Основы](articles/01-foundations.md)        | in progress   | newtype, ADT, uninhabited types, phantom types, typestate       |
-| 2/4 | [Контракты](articles/02-contracts.md)       | planned       | трейты, ассоциированные типы, const generics                    |
-| 3/4 | [Валидатор](articles/03-validator.md)       | planned       | типы-списки, compile-time валидаторы, event sourcing            |
-| 4/4 | [Nightly](articles/04-nightly.md)           | planned       | pattern types, const traits, gen-блоки                          |
+| 1/5 | [Основы](articles/01-foundations.md)        | in progress   | newtype, ADT, uninhabited types, phantom types, typestate       |
+| 2/5 | [Контракты](articles/02-contracts.md)       | planned       | трейты, ассоциированные типы, const generics                    |
+| 3/5 | [Валидатор](articles/03-validator.md)       | planned       | типы-списки, compile-time валидаторы, event sourcing            |
+| 4/5 | [Nightly](articles/04-nightly.md)           | planned       | pattern types, const traits, gen-блоки, never type              |
+| 5/5 | [Будущее](articles/05-future.md)            | idea          | substructural types, эффекты, variadic generics, view types     |
 
 ## Примеры кода
 
-В каталоге `examples/` лежит Cargo workspace с четырьмя крейтами — по одному на каждую часть серии. Стабильные крейты собираются из корня воркспейса:
+В каталоге `examples/` лежит Cargo workspace с четырьмя крейтами — по одному на части 1–4 (у Части 5 кода пока нет). Стабильные крейты собираются из корня воркспейса:
 
 ```sh
 cd examples
