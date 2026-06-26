@@ -813,7 +813,7 @@ pub struct Money<Currency> {
     _currency: PhantomData<Currency>,
 }
 
-// derive на Money требует Copy, Clone и от маркеров — почему, разберём в «Хороших практиках» ниже
+// derive на Money требует Copy, Clone и от маркеров — механизм тот же, что у Id<Tag> в «Хороших практиках» ниже
 #[derive(Clone, Copy)]
 pub struct Usd;
 #[derive(Clone, Copy)]
@@ -823,7 +823,7 @@ pub struct Eur;
 impl<Currency> std::ops::Add for Money<Currency> {
     type Output = Money<Currency>;
     fn add(self, rhs: Money<Currency>) -> Money<Currency> {
-        Money { amount: self.amount + rhs.amount, _currency: PhantomData }
+        Money::new(self.amount + rhs.amount)
     }
 }
 ```
@@ -842,7 +842,7 @@ let _ = usd + eur;   // error[E0308]: expected `Money<Usd>`, found `Money<Eur>`
 Классическая ошибка «сложили доллары с евро» отсекается на этапе компиляции.
 А в рантайме `Money<Usd>` и `Money<Eur>` — это всё те же байты `Decimal`, без всякого тега.
 
-В newtype `notional` возвращал голый `Decimal` — обернём результат в `Money<C>`:
+В newtype-разделе номинал `price.amount() * quantity.amount()` был голым `Decimal` — обернём результат в `Money<C>`:
 
 ```rust
 pub fn notional<C>(price: Price, quantity: Quantity) -> Money<C> {
@@ -891,7 +891,7 @@ impl<Tag> Id<Tag> {
 
 **`#[derive(...)]` на `Id<Tag>` требует, чтобы `Tag` тоже его поддерживал.**
 Если написать `#[derive(Debug, Clone, PartialEq)] struct Id<Tag> { ... }`, компилятор сгенерирует `impl<Tag: Debug + Clone + PartialEq> Debug for Id<Tag>` — а маркеры по умолчанию ни одного из этих трейтов не реализуют, и код упадёт на этапе компиляции с `error[E0277]: OrderTag doesn't implement Debug`.
-Самый простой выход — навесить те же derive-ы и на маркеры:
+Нужно навесить те же derive-ы и на маркеры:
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
