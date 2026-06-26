@@ -10,6 +10,8 @@ use std::marker::PhantomData;
 
 use rust_decimal::Decimal;
 
+use crate::newtype::market::{Price, Quantity};
+
 /// Generic-идентификатор с phantom-тегом. Все `Id<Tag>` в рантайме — это
 /// 8 байт `u64`; разница между маркерами существует только на этапе компиляции.
 ///
@@ -94,6 +96,14 @@ impl<Currency> std::ops::Add for Money<Currency> {
     }
 }
 
+/// Номинал заявки в валюте инструмента: тот самый `price × quantity` из
+/// newtype-раздела ([`crate::newtype::market::notional`]), но обёрнутый в `Money<C>`.
+/// Валюту `C` задаёт спецификация инструмента, так что номиналы в разных валютах
+/// сложить уже не получится — та же защита, что у `Money<Usd> + Money<Eur>`.
+pub fn notional<C>(price: Price, quantity: Quantity) -> Money<C> {
+    Money::new(price.amount() * quantity.amount())
+}
+
 /// Доллар США.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Usd;
@@ -144,5 +154,19 @@ mod tests {
     fn money_tag_does_not_add_overhead() {
         // Внутри только Decimal — phantom-валюта ничего не весит.
         assert_eq!(size_of::<Money<Usd>>(), size_of::<Decimal>());
+    }
+
+    #[test]
+    fn notional_is_money_in_instrument_currency() {
+        use crate::newtype::market::{InstrumentSpec, LotSize, TickSize};
+        let spec = InstrumentSpec {
+            tick_size: TickSize::new(dec!(0.01)).unwrap(),
+            lot_size: LotSize::new(dec!(1)).unwrap(),
+        };
+        let price = spec.price(dec!(185.50)).unwrap();
+        let quantity = spec.quantity(dec!(10)).unwrap();
+        // Стоимость сделки — Money в валюте инструмента (здесь Usd), а не голый Decimal.
+        let n: Money<Usd> = notional(price, quantity);
+        assert_eq!(n.amount(), dec!(1855.00));
     }
 }
