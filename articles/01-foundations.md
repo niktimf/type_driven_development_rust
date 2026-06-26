@@ -819,7 +819,12 @@ pub struct Usd;
 #[derive(Clone, Copy)]
 pub struct Eur;
 
-// new(amount) — как Id::new из соседней секции, опускаем
+impl<Currency> Money<Currency> {
+    pub const fn new(amount: Decimal) -> Self {
+        Self { amount, _currency: PhantomData }
+    }
+}
+
 impl<Currency> std::ops::Add for Money<Currency> {
     type Output = Money<Currency>;
     fn add(self, rhs: Money<Currency>) -> Money<Currency> {
