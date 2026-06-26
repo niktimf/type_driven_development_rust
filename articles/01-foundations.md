@@ -800,7 +800,7 @@ cancel_order(instrument_id);
 
 ### Расширение: phantom-тег для валют
 
-Стоимость сделки `price.amount() * quantity.amount()` (из newtype-раздела) выражена в валюте инструмента: `AAPL` торгуется в долларах, европейская бумага в евро.
+Стоимость сделки — `notional` из newtype-раздела (`price.amount() * quantity.amount()`) — выражена в валюте инструмента: `AAPL` торгуется в долларах, европейская бумага в евро.
 У `Id<Tag>` маркер просто различал типы, а здесь phantom-параметр идёт дальше: решает, какие операции скомпилируются.
 Сложить доллары с евро нельзя, поэтому валюту выносим в phantom-параметр:
 
@@ -847,7 +847,7 @@ let _ = usd + eur;   // error[E0308]: expected `Money<Usd>`, found `Money<Eur>`
 Классическая ошибка «сложили доллары с евро» отсекается на этапе компиляции.
 А в рантайме `Money<Usd>` и `Money<Eur>` — это всё те же байты `Decimal`, без всякого тега.
 
-Тот самый `notional` из newtype-раздела был голым `Decimal` — оформим его функцией, оборачивающей результат в `Money<Currency>`:
+Тот самый `notional` был голым `Decimal` — оформим его функцией, оборачивающей результат в `Money<Currency>`:
 
 ```rust
 pub fn notional<Currency>(price: Price, quantity: Quantity) -> Money<Currency> {
