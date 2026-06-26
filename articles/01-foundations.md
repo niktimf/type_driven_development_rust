@@ -853,7 +853,7 @@ pub fn notional<C>(price: Price, quantity: Quantity) -> Money<C> {
 let total: Money<Usd> = notional(price, quantity);
 ```
 
-Сложить номиналы двух бумаг в разных валютах теперь не получится.
+Это закрывает мысль из начала раздела: стоимость сделки теперь несёт валюту инструмента прямо в типе — `Money<Usd>` для `AAPL`, а не безликий `Decimal`.
 
 ### Маркеры — какие типы брать
 
