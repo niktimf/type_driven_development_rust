@@ -858,7 +858,7 @@ pub fn notional<Currency>(price: Price, quantity: Quantity) -> Money<Currency> {
 let total: Money<Usd> = notional(price, quantity);
 ```
 
-Это закрывает мысль из начала раздела: стоимость сделки теперь несёт валюту инструмента прямо в типе — `Money<Usd>` для `AAPL`, а не безликий `Decimal`.
+Теперь стоимость сделки несёт валюту инструмента прямо в типе — `Money<Usd>` для `AAPL`, а не безликий `Decimal`.
 
 ### Маркеры — какие типы брать
 
