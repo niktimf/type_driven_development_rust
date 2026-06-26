@@ -800,7 +800,7 @@ cancel_order(instrument_id);
 
 ### Расширение: phantom-тег для валют
 
-Стоимость сделки `price * quantity` (из newtype-раздела) выражена в валюте инструмента: `AAPL` торгуется в долларах, европейская бумага в евро.
+Стоимость сделки `price.amount() * quantity.amount()` (из newtype-раздела) выражена в валюте инструмента: `AAPL` торгуется в долларах, европейская бумага в евро.
 У `Id<Tag>` маркер просто различал типы, а здесь phantom-параметр идёт дальше: решает, какие операции скомпилируются.
 Сложить доллары с евро нельзя, поэтому валюту выносим в phantom-параметр:
 
@@ -847,14 +847,14 @@ let _ = usd + eur;   // error[E0308]: expected `Money<Usd>`, found `Money<Eur>`
 Классическая ошибка «сложили доллары с евро» отсекается на этапе компиляции.
 А в рантайме `Money<Usd>` и `Money<Eur>` — это всё те же байты `Decimal`, без всякого тега.
 
-В newtype-разделе номинал `price.amount() * quantity.amount()` был голым `Decimal` — обернём результат в `Money<C>`:
+Тот самый `notional` из newtype-раздела был голым `Decimal` — оформим его функцией, оборачивающей результат в `Money<Currency>`:
 
 ```rust
-pub fn notional<C>(price: Price, quantity: Quantity) -> Money<C> {
+pub fn notional<Currency>(price: Price, quantity: Quantity) -> Money<Currency> {
     Money::new(price.amount() * quantity.amount())
 }
 
-// валюту-тег `C` берём из инструмента (у AAPL это Usd); здесь — из типа результата:
+// валюту-тег `Currency` берём из инструмента (у AAPL это Usd); здесь — из типа результата:
 let total: Money<Usd> = notional(price, quantity);
 ```
 
@@ -1024,7 +1024,7 @@ impl DraftOrder {
     /// Постановка в стакан: биржа резолвит символ в InstrumentId, присваивает id заявки и может отклонить.
     pub fn submit(self) -> Result<WorkingOrder, RejectReason> {
         /* поход на биржу */
-        Ok(WorkingOrder { id: assign_id(), instrument: resolve(self.symbol), /* ...перенос полей... */ })
+        Ok(WorkingOrder { id: assign_id(), instrument: resolve(&self.symbol), /* ...перенос полей... */ })
     }
 }
 
