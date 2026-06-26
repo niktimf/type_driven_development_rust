@@ -2,7 +2,7 @@
 //!
 //! Две демонстрации на биржевом домене:
 //! - [`Id<Tag>`] — одна generic-структура, много типов-маркеров. В памяти
-//!   `Id<Order>` и `Id<Instrument>` — один и тот же `u64`, но компилятор их различает.
+//!   `Id<OrderTag>` и `Id<InstrumentTag>` — один и тот же `u64`, но компилятор их различает.
 //! - [`Money<Currency>`] — валюта как phantom-тег: сложить `Money<Usd>` и `Money<Eur>`
 //!   компилятор не даст, хотя внутри обоих один `Decimal`.
 
@@ -21,7 +21,7 @@ use rust_decimal::Decimal;
 /// fn cancel_order(_id: OrderId) {}
 ///
 /// let instrument: InstrumentId = Id::new(42);
-/// cancel_order(instrument); // expected `Id<Order>`, found `Id<Instrument>`
+/// cancel_order(instrument); // expected `Id<OrderTag>`, found `Id<InstrumentTag>`
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Id<Tag> {
@@ -45,14 +45,14 @@ impl<Tag> Id<Tag> {
 /// Маркер заказа. Derive-ы навешены, чтобы `#[derive(...)]` на `Id<Tag>`
 /// работал — он добавляет bound `Tag: Debug + Clone + ...` на сгенерированный impl.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Order;
+pub struct OrderTag;
 
 /// Маркер инструмента — аналогично.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Instrument;
+pub struct InstrumentTag;
 
-pub type OrderId = Id<Order>;
-pub type InstrumentId = Id<Instrument>;
+pub type OrderId = Id<OrderTag>;
+pub type InstrumentId = Id<InstrumentTag>;
 
 /// Валюта как phantom-тег. Внутри — `Decimal` (десятичные деньги из newtype-раздела),
 /// но `Money<Usd>` и `Money<Eur>` — разные типы, и сложить их компилятор не даст.
@@ -111,8 +111,8 @@ mod tests {
     #[test]
     fn phantom_does_not_add_runtime_overhead() {
         // PhantomData<Tag> в рантайме отсутствует — размер равен u64.
-        assert_eq!(size_of::<Id<Order>>(), size_of::<u64>());
-        assert_eq!(size_of::<Id<Instrument>>(), size_of::<u64>());
+        assert_eq!(size_of::<Id<OrderTag>>(), size_of::<u64>());
+        assert_eq!(size_of::<Id<InstrumentTag>>(), size_of::<u64>());
         assert_eq!(size_of::<OrderId>(), 8);
     }
 
