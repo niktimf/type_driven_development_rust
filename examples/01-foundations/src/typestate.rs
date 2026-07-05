@@ -17,6 +17,12 @@
 //! тип и цена живут в [`OrderType`], а биржа резолвит символ в [`InstrumentId`] и
 //! присваивает [`OrderId`] на `submit`. Цена исполнения (`fill_price`) приходит от
 //! биржи на `fill` и может отличаться от лимитной.
+//!
+//! В конце файла — phantom-вариант той же машины: одна структура [`Order`] на все
+//! состояния после постановки, маркеры собраны в модуль [`order_state`], а черновик
+//! остаётся отдельной структурой.
+
+use std::marker::PhantomData;
 
 use crate::adt::OrderType;
 use crate::newtype::ids::OrderId;
@@ -29,8 +35,8 @@ pub enum RejectReason {
     InsufficientFunds,
 }
 
-/// Черновик заявки: собран у клиента, на биржу ещё не отправлен — биржа не присвоила
-/// ни id заявки, ни id инструмента. Символ инструмента хранится строкой (`"AAPL"`),
+/// Черновик заявки: собран у клиента, на биржу ещё не отправлен — id заявки не
+/// присвоен, символ не резолвлен в id инструмента. Символ хранится строкой (`"AAPL"`),
 /// тип и цена — в [`OrderType`] (как в ADT-разделе).
 ///
 /// Compile-fail: метод не своего состояния на черновике не вызвать.
@@ -131,8 +137,8 @@ impl DraftOrder {
     }
 }
 
-/// Активная заявка «в стакане»: биржа приняла её, присвоила id и id инструмента.
-/// Ждёт исполнения или отмены.
+/// Активная заявка «в стакане»: биржа приняла её, присвоила id заявки и резолвила
+/// символ в id инструмента. Ждёт исполнения или отмены.
 pub struct WorkingOrder {
     id: OrderId,
     instrument: InstrumentId,
@@ -205,6 +211,112 @@ impl CancelledOrder {
     pub fn id(&self) -> OrderId {
         self.id
     }
+}
+
+/// Маркеры состояний phantom-варианта. Собраны в модуль, чтобы не засорять верхнюю
+/// область видимости голыми `Working`/`Filled` (см. «Хорошие практики» в статье).
+pub mod order_state {
+    /// Заявка в стакане — ждёт исполнения.
+    pub struct Working;
+    /// Заявка исполнена — терминальное состояние.
+    pub struct Filled;
+}
+
+/// Phantom-вариант той же машины состояний: одна структура на все состояния после
+/// постановки, состояние — в параметре типа. Удобен, когда состояния делят почти
+/// все поля; черновик остаётся отдельной структурой ([`DraftOrder`]) — у него ещё
+/// нет ни id, ни инструмента.
+///
+/// Compile-fail: метод не своего состояния не вызвать.
+///
+/// ```compile_fail
+/// # use tdd_01_foundations::typestate::{order_state, Order};
+/// # use tdd_01_foundations::adt::OrderType;
+/// # use tdd_01_foundations::newtype::ids::OrderId;
+/// # use tdd_01_foundations::newtype::market::{InstrumentId, InstrumentSpec, TickSize, LotSize, Side};
+/// # use rust_decimal::dec;
+/// # let spec = InstrumentSpec {
+/// #     tick_size: TickSize::new(dec!(0.01)).unwrap(),
+/// #     lot_size: LotSize::new(dec!(1)).unwrap(),
+/// # };
+/// let working = Order::<order_state::Working>::new(
+///     OrderId(1),
+///     InstrumentId(1),
+///     Side::Buy,
+///     spec.quantity(dec!(10)).unwrap(),
+///     OrderType::Market,
+/// );
+/// working.settle(); // no method `settle` on Order<Working> — сначала fill
+/// ```
+pub struct Order<State> {
+    id: OrderId,
+    instrument: InstrumentId,
+    side: Side,
+    quantity: Quantity,
+    order_type: OrderType,
+    _state: PhantomData<State>,
+}
+
+/// Generic-методы работают на всех состояниях сразу — одна из причин выбрать
+/// phantom-вариант.
+impl<State> Order<State> {
+    pub fn id(&self) -> OrderId {
+        self.id
+    }
+
+    pub fn instrument(&self) -> InstrumentId {
+        self.instrument
+    }
+
+    pub fn side(&self) -> Side {
+        self.side
+    }
+
+    pub fn quantity(&self) -> Quantity {
+        self.quantity
+    }
+
+    pub fn order_type(&self) -> OrderType {
+        self.order_type
+    }
+}
+
+impl Order<order_state::Working> {
+    /// В реальном коде `Order<Working>` появлялся бы из постановки черновика;
+    /// здесь упрощённо — прямой конструктор.
+    pub fn new(
+        id: OrderId,
+        instrument: InstrumentId,
+        side: Side,
+        quantity: Quantity,
+        order_type: OrderType,
+    ) -> Self {
+        Self {
+            id,
+            instrument,
+            side,
+            quantity,
+            order_type,
+            _state: PhantomData,
+        }
+    }
+
+    /// Исполнение: меняется только параметр типа — поля переезжают как есть.
+    pub fn fill(self) -> Order<order_state::Filled> {
+        Order {
+            id: self.id,
+            instrument: self.instrument,
+            side: self.side,
+            quantity: self.quantity,
+            order_type: self.order_type,
+            _state: PhantomData,
+        }
+    }
+}
+
+impl Order<order_state::Filled> {
+    /// Расчёты по исполненной заявке. Здесь упрощённо — ничего не делает.
+    pub fn settle(self) {}
 }
 
 /// Биржа присваивает id заявке при постановке. Здесь упрощённо — фиксированный id.
@@ -280,5 +392,23 @@ mod tests {
             s.quantity(dec!(5)).unwrap(),
         );
         assert_eq!(stop_limit.order_type.limit_price().unwrap().amount(), dec!(181.00));
+    }
+
+    #[test]
+    fn phantom_variant_carries_fields_across_states() {
+        let s = spec();
+        let working = Order::<order_state::Working>::new(
+            OrderId(7),
+            InstrumentId(1),
+            Side::Buy,
+            s.quantity(dec!(10)).unwrap(),
+            OrderType::Market,
+        );
+        assert!(working.order_type().is_market());
+
+        let filled = working.fill();
+        assert_eq!(filled.id(), OrderId(7));
+        assert_eq!(filled.quantity().amount(), dec!(10));
+        filled.settle();
     }
 }
