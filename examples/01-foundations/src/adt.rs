@@ -1,18 +1,21 @@
 //! Раздел статьи «ADT (алгебраические типы данных)» — на биржевом домене.
 //!
 //! - [`Side`] (из [`crate::newtype::market`]) — enum без данных, просто метка.
-//! - [`OrderType`] — центральный пример: `Market` физически не несёт цены, поэтому
-//!   «рыночный ордер с лимитной ценой» в типе невыразим. Показывает все три формы
+//! - [`OrderType`] — центральный пример: у `Market` нет поля цены, поэтому
+//!   «рыночная заявка с лимитной ценой» в типе невыразима. Показывает все три формы
 //!   вариантов сразу (без данных / tuple / именованные поля), методы и `Display`.
+//! - [`Order`] — заявка на стороне биржи: тип и цена — внутри `order_type`.
 //! - [`OrderEvent`] / [`CancelReason`] — вложенный ADT (внутри варианта — другой enum).
 
 use std::fmt;
 
-use crate::newtype::market::{Price, Quantity, Side};
+use crate::newtype::market::{InstrumentId, Price, Quantity, Side};
 
-/// Тип заявки. Наивно его моделируют через `is_market: bool` + `Option<Price>`,
-/// и тогда представимы бессмысленные сочетания: рыночная заявка с ценой или
-/// лимитная без цены. Здесь таких состояний просто нет — у `Market` нет поля цены.
+/// Тип заявки.
+/// Наивно его моделируют через `is_market: bool` и пару `Option`-ов,
+/// и тогда из восьми сочетаний осмысленны лишь три:
+/// представимы рыночная заявка с ценой или лимитная без цены.
+/// Здесь таких состояний нет — у `Market` нет поля цены.
 ///
 /// Показывает три формы вариантов в одном enum:
 /// - `Market` — без данных;
@@ -65,6 +68,17 @@ impl fmt::Display for OrderType {
     }
 }
 
+/// Заявка на стороне биржи.
+/// Тип и цена переехали внутрь [`OrderType`]:
+/// `is_market` и `Option`-ы не нужны — их работу делает одно поле `order_type`.
+pub struct Order {
+    pub instrument: InstrumentId,
+    pub side: Side,
+    pub quantity: Quantity,
+    pub order_type: OrderType,
+    // ... другие поля
+}
+
 /// Причина отмены — маленький enum, чтобы показать вложение в [`OrderEvent`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CancelReason {
@@ -98,7 +112,27 @@ pub fn describe_order_type(order_type: &OrderType) -> &'static str {
     }
 }
 
-/// Двухуровневый `match`: сначала по `OrderEvent`, внутри `Accepted` — по `OrderType`.
+/// Двухуровневый `match` из статьи: события пишем через `tracing` — стандарт
+/// де-факто для структурированных логов. Появится вариант в `OrderType` — компилятор
+/// укажет и на ветки внутри `OrderEvent::Accepted`.
+pub fn log_event(event: &OrderEvent) {
+    match event {
+        OrderEvent::Accepted { order_type, side } => match order_type {
+            OrderType::Market =>
+                tracing::info!(?side, "accepted market order"),
+            OrderType::Limit(price) =>
+                tracing::info!(?side, ?price, "accepted limit order"),
+            OrderType::StopLimit { stop, limit } =>
+                tracing::info!(?side, ?stop, ?limit, "accepted stop-limit"),
+        },
+        OrderEvent::Filled { price, quantity } =>
+            tracing::info!(?price, ?quantity, "filled"),
+        OrderEvent::Cancelled { reason } =>
+            tracing::info!(?reason, "cancelled"),
+    }
+}
+
+/// Тестируемый аналог [`log_event`]: та же двухуровневая развилка, но со строкой на выходе.
 pub fn describe_event(event: &OrderEvent) -> &'static str {
     match event {
         OrderEvent::Accepted { order_type, .. } => match order_type {

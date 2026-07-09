@@ -3,11 +3,12 @@
 //! - [`Price`] / [`Quantity`] — newtype над `Decimal` с приватным полем.
 //! - [`TickSize`] / [`LotSize`] — шаги инструмента, тоже newtype (иначе их легко
 //!   перепутать местами в [`InstrumentSpec`]).
-//! - [`InstrumentSpec`] — где живёт smart constructor: инвариант цены зависит от
+//! - [`InstrumentSpec`] — где находится smart constructor: инвариант цены зависит от
 //!   инструмента (его шага цены), поэтому конструктор — на спецификации, а не на
-//!   самом `Price`. Это усложнённый случай; классический smart constructor живёт
+//!   самом `Price`. Это усложнённый случай; классический smart constructor находится
 //!   на самом типе, когда инвариант самодостаточен.
-//! - [`Side`] / [`Order`] — собранная заявка (product type из value objects).
+//! - [`Side`] — сторона заявки; по статье вводится в ADT-разделе как замена
+//!   `is_buy: bool`, объявлена здесь, потому что нужна [`place_limit_order`].
 
 use rust_decimal::Decimal;
 
@@ -36,8 +37,8 @@ pub struct Price(Decimal);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Quantity(Decimal);
 
-/// Шаг цены (tick size). Тоже newtype, иначе в [`InstrumentSpec`] его легко
-/// перепутать с [`LotSize`].
+/// Шаг цены (tick size).
+/// Тоже newtype, иначе в [`InstrumentSpec`] его легко перепутать с [`LotSize`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TickSize(Decimal);
 
@@ -90,7 +91,7 @@ impl LotSize {
     }
 }
 
-/// Спецификация инструмента: здесь живёт smart constructor цены и объёма, потому
+/// Спецификация инструмента: здесь находится smart constructor цены и объёма, потому
 /// что инвариант (кратность шагу) зависит от инструмента, а не от самого числа.
 pub struct InstrumentSpec {
     pub tick_size: TickSize,
@@ -111,7 +112,7 @@ impl InstrumentSpec {
         Ok(Price(value))
     }
 
-    /// Зеркально [`InstrumentSpec::price`], только проверка идёт против шага лота.
+    /// Зеркально [`InstrumentSpec::price`], только проверка идёт по шагу лота.
     pub fn quantity(&self, value: Decimal) -> Result<Quantity, QuantityError> {
         let lot = self.lot_size.amount();
         if value <= Decimal::ZERO {
@@ -137,20 +138,13 @@ impl Quantity {
     }
 }
 
-/// Заявка: product type, собранный из типизированных value objects.
-pub struct Order {
-    pub instrument: InstrumentId,
-    pub side: Side,
-    pub price: Price,
-    pub quantity: Quantity,
-}
-
-/// Номинал заявки = цена × объём. Умножение `Decimal` точное.
+/// Номинал заявки = цена * объём. Умножение `Decimal` точное.
 pub fn notional(price: Price, quantity: Quantity) -> Decimal {
     price.amount() * quantity.amount()
 }
 
-/// Сигнатура из статьи: благодаря типам аргументы не перепутать местами.
+/// Сигнатура из статьи; `is_buy: bool` из newtype-раздела уже заменён на [`Side`]
+/// (это происходит в ADT-разделе). Благодаря типам аргументы не перепутать местами.
 pub fn place_limit_order(
     symbol: &str,
     side: Side,
@@ -211,12 +205,8 @@ mod tests {
     #[test]
     fn notional_is_price_times_quantity() {
         let s = spec();
-        let order = Order {
-            instrument: InstrumentId(1),
-            side: Side::Buy,
-            price: s.price(dec!(185.50)).unwrap(),
-            quantity: s.quantity(dec!(10)).unwrap(),
-        };
-        assert_eq!(notional(order.price, order.quantity), dec!(1855.00));
+        let price = s.price(dec!(185.50)).unwrap();
+        let quantity = s.quantity(dec!(10)).unwrap();
+        assert_eq!(notional(price, quantity), dec!(1855.00));
     }
 }

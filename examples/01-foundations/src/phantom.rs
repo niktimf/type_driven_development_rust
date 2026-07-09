@@ -12,8 +12,9 @@ use rust_decimal::Decimal;
 
 use crate::newtype::market::{Price, Quantity};
 
-/// Generic-идентификатор с phantom-тегом. Все `Id<Tag>` в рантайме — это
-/// 8 байт `u64`; разница между маркерами существует только на этапе компиляции.
+/// Generic-идентификатор с phantom-тегом.
+/// Все `Id<Tag>` в рантайме — это 8 байт `u64`;
+/// разница между маркерами существует только на этапе компиляции.
 ///
 /// Пример из статьи: `InstrumentId` нельзя передать в функцию, ожидающую `OrderId`.
 ///
@@ -44,7 +45,8 @@ impl<Tag> Id<Tag> {
     }
 }
 
-/// Маркер заказа. Derive-ы навешены, чтобы `#[derive(...)]` на `Id<Tag>`
+/// Маркер заявки.
+/// Derive-ы навешены, чтобы `#[derive(...)]` на `Id<Tag>`
 /// работал — он добавляет bound `Tag: Debug + Clone + ...` на сгенерированный impl.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OrderTag;
@@ -56,7 +58,8 @@ pub struct InstrumentTag;
 pub type OrderId = Id<OrderTag>;
 pub type InstrumentId = Id<InstrumentTag>;
 
-/// Валюта как phantom-тег. Внутри — `Decimal` (десятичные деньги из newtype-раздела),
+/// Валюта как phantom-тег.
+/// Внутри — `Decimal` (десятичные деньги из newtype-раздела),
 /// но `Money<Usd>` и `Money<Eur>` — разные типы, и сложить их компилятор не даст.
 ///
 /// ```compile_fail
@@ -86,8 +89,9 @@ impl<Currency> Money<Currency> {
     }
 }
 
-/// Сложить можно только деньги одной валюты: оба операнда — `Money<Currency>` с
-/// одним и тем же `Currency`. `Money<Usd> + Money<Eur>` не компилируется.
+/// Сложить можно только деньги одной валюты:
+/// оба операнда — `Money<Currency>` с одним и тем же `Currency`.
+/// `Money<Usd> + Money<Eur>` не компилируется.
 impl<Currency> std::ops::Add for Money<Currency> {
     type Output = Money<Currency>;
 
@@ -96,7 +100,7 @@ impl<Currency> std::ops::Add for Money<Currency> {
     }
 }
 
-/// Номинал заявки в валюте инструмента: тот самый `price × quantity` из
+/// Номинал заявки в валюте инструмента: тот самый `price * quantity` из
 /// newtype-раздела ([`crate::newtype::market::notional`]), но обёрнутый в `Money<C>`.
 /// Валюту `C` задаёт спецификация инструмента, так что номиналы в разных валютах
 /// сложить уже не получится — та же защита, что у `Money<Usd> + Money<Eur>`.
