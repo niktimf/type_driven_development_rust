@@ -1,4 +1,4 @@
-//! Примеры к части 3/4: типы-списки, compile-time валидаторы, event sourcing.
+//! Примеры к части 3/5: типы-списки, compile-time валидаторы, event sourcing.
 
 #[cfg(test)]
 mod tests {
