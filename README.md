@@ -4,13 +4,13 @@
 
 ## Статьи
 
-| #   | Часть                                       | Статус        | Аннотация                                                       |
-|-----|---------------------------------------------|---------------|-----------------------------------------------------------------|
-| 1/5 | [Основы](articles/01-foundations.md)        | in progress   | newtype, ADT, uninhabited types, phantom types, typestate       |
-| 2/5 | [Контракты](articles/02-contracts.md)       | planned       | трейты, ассоциированные типы, const generics                    |
-| 3/5 | [Валидатор](articles/03-validator.md)       | planned       | типы-списки, compile-time валидаторы, event sourcing            |
-| 4/5 | [Nightly](articles/04-nightly.md)           | planned       | pattern types, const traits, gen-блоки, never type              |
-| 5/5 | [Будущее](articles/05-future.md)            | idea          | substructural types, эффекты, variadic generics, view types     |
+| #   | Часть                                 | Статус      | Аннотация                                                   |
+|-----|---------------------------------------|-------------|-------------------------------------------------------------|
+| 1/5 | [Основы](articles/01-foundations.md)  | ready       | newtype, ADT, uninhabited types, phantom types, typestate   |
+| 2/5 | [Контракты](articles/02-contracts.md) | in progress | traits, associated types, const generics                    |
+| 3/5 | [Валидатор](articles/03-validator.md) | planned     | type-level lists, compile-time validators, event sourcing   |
+| 4/5 | [Nightly](articles/04-nightly.md)     | planned     | pattern types, const traits, gen blocks, never type         |
+| 5/5 | [Будущее](articles/05-future.md)      | planned     | substructural types, effects, variadic generics, view types |
 
 ## Примеры кода
 
