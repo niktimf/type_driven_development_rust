@@ -145,14 +145,27 @@ pub fn notional(price: Price, quantity: Quantity) -> Decimal {
 
 /// Сигнатура из статьи; `is_buy: bool` из newtype-раздела уже заменён на [`Side`]
 /// (это происходит в ADT-разделе). Благодаря типам аргументы не перепутать местами.
-pub fn place_limit_order(
-    symbol: &str,
-    side: Side,
-    price: Price,
-    quantity: Quantity,
-) -> OrderId {
+pub fn place_limit_order(symbol: &str, side: Side, price: Price, quantity: Quantity) -> OrderId {
     let _ = (symbol, side, price, quantity);
     OrderId(1)
+}
+
+/// Рыночная заявка: параметра цены нет — передать её некуда.
+pub fn place_market_order(symbol: &str, side: Side, quantity: Quantity) -> OrderId {
+    let _ = (symbol, side, quantity);
+    OrderId(2)
+}
+
+/// Стоп-лимитная заявка: стоп-триггер и лимитная цена обязательны.
+pub fn place_stop_limit_order(
+    symbol: &str,
+    side: Side,
+    stop_price: Price,
+    limit_price: Price,
+    quantity: Quantity,
+) -> OrderId {
+    let _ = (symbol, side, stop_price, limit_price, quantity);
+    OrderId(3)
 }
 
 #[cfg(test)]

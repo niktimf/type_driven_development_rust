@@ -12,9 +12,10 @@ use std::fmt;
 use crate::newtype::market::{InstrumentId, Price, Quantity, Side};
 
 /// Тип заявки.
+///
 /// Наивно его моделируют через `is_market: bool` и пару `Option`-ов,
-/// и тогда из восьми сочетаний осмысленны лишь три:
-/// представимы рыночная заявка с ценой или лимитная без цены.
+/// и тогда из восьми сочетаний осмысленны лишь три, а представимы все —
+/// в том числе рыночная заявка с ценой и лимитная без цены.
 /// Здесь таких состояний нет — у `Market` нет поля цены.
 ///
 /// Показывает три формы вариантов в одном enum:
@@ -44,16 +45,16 @@ pub enum OrderType {
 impl OrderType {
     /// Рыночная ли заявка.
     pub fn is_market(&self) -> bool {
-        matches!(self, OrderType::Market)
+        matches!(self, Self::Market)
     }
 
     /// Лимитная цена, если она у этого типа есть. Варианты перечислены явно:
     /// при добавлении нового типа компилятор заставит решить, есть ли у него цена.
     pub fn limit_price(&self) -> Option<Price> {
         match self {
-            OrderType::Limit(price) => Some(*price),
-            OrderType::StopLimit { limit, .. } => Some(*limit),
-            OrderType::Market => None,
+            Self::Limit(price) => Some(*price),
+            Self::StopLimit { limit, .. } => Some(*limit),
+            Self::Market => None,
         }
     }
 }
@@ -61,9 +62,9 @@ impl OrderType {
 impl fmt::Display for OrderType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            OrderType::Market => write!(f, "market"),
-            OrderType::Limit(_) => write!(f, "limit"),
-            OrderType::StopLimit { .. } => write!(f, "stop-limit"),
+            Self::Market => write!(f, "market"),
+            Self::Limit(_) => write!(f, "limit"),
+            Self::StopLimit { .. } => write!(f, "stop-limit"),
         }
     }
 }
@@ -90,17 +91,9 @@ pub enum CancelReason {
 /// `match` остаётся исчерпывающим на любой глубине.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OrderEvent {
-    Accepted {
-        order_type: OrderType,
-        side: Side,
-    },
-    Filled {
-        price: Price,
-        quantity: Quantity,
-    },
-    Cancelled {
-        reason: CancelReason,
-    },
+    Accepted { order_type: OrderType, side: Side },
+    Filled { price: Price, quantity: Quantity },
+    Cancelled { reason: CancelReason },
 }
 
 /// Краткое описание типа заявки — демонстрация `match` по `OrderType`.
@@ -118,17 +111,14 @@ pub fn describe_order_type(order_type: &OrderType) -> &'static str {
 pub fn log_event(event: &OrderEvent) {
     match event {
         OrderEvent::Accepted { order_type, side } => match order_type {
-            OrderType::Market =>
-                tracing::info!(?side, "accepted market order"),
-            OrderType::Limit(price) =>
-                tracing::info!(?side, ?price, "accepted limit order"),
-            OrderType::StopLimit { stop, limit } =>
-                tracing::info!(?side, ?stop, ?limit, "accepted stop-limit"),
+            OrderType::Market => tracing::info!(?side, "accepted market order"),
+            OrderType::Limit(price) => tracing::info!(?side, ?price, "accepted limit order"),
+            OrderType::StopLimit { stop, limit } => {
+                tracing::info!(?side, ?stop, ?limit, "accepted stop-limit");
+            }
         },
-        OrderEvent::Filled { price, quantity } =>
-            tracing::info!(?price, ?quantity, "filled"),
-        OrderEvent::Cancelled { reason } =>
-            tracing::info!(?reason, "cancelled"),
+        OrderEvent::Filled { price, quantity } => tracing::info!(?price, ?quantity, "filled"),
+        OrderEvent::Cancelled { reason } => tracing::info!(?reason, "cancelled"),
     }
 }
 
@@ -223,7 +213,10 @@ mod tests {
     #[test]
     fn describe_order_type_covers_each_variant() {
         assert_eq!(describe_order_type(&OrderType::Market), "market");
-        assert_eq!(describe_order_type(&OrderType::Limit(price("1.00"))), "limit");
+        assert_eq!(
+            describe_order_type(&OrderType::Limit(price("1.00"))),
+            "limit"
+        );
         assert_eq!(
             describe_order_type(&OrderType::StopLimit {
                 stop: price("1.00"),

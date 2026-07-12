@@ -21,7 +21,7 @@ pub struct OrderId(pub u64);
 
 impl From<u64> for AccountId {
     fn from(id: u64) -> Self {
-        Self(id)
+        AccountId(id)
     }
 }
 

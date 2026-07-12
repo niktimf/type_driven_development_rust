@@ -327,13 +327,13 @@ impl Order<order_state::Filled> {
 
 /// Биржа присваивает id заявке при постановке.
 /// Здесь упрощённо — фиксированный id.
-fn assign_id() -> OrderId {
+const fn assign_id() -> OrderId {
     OrderId(1)
 }
 
 /// Биржа резолвит символ инструмента (`"AAPL"`) в числовой [`InstrumentId`] на входе.
 /// Здесь упрощённо — фиксированный id.
-fn resolve(_symbol: &str) -> InstrumentId {
+const fn resolve(_symbol: &str) -> InstrumentId {
     InstrumentId(1)
 }
 
@@ -388,7 +388,8 @@ mod tests {
     #[test]
     fn typed_constructors_set_order_type() {
         let s = spec();
-        let market = DraftOrder::market("AAPL".to_string(), Side::Buy, s.quantity(dec!(10)).unwrap());
+        let market =
+            DraftOrder::market("AAPL".to_string(), Side::Buy, s.quantity(dec!(10)).unwrap());
         assert!(market.order_type.is_market());
 
         let stop_limit = DraftOrder::stop_limit(
@@ -398,7 +399,10 @@ mod tests {
             s.price(dec!(181.00)).unwrap(),
             s.quantity(dec!(5)).unwrap(),
         );
-        assert_eq!(stop_limit.order_type.limit_price().unwrap().amount(), dec!(181.00));
+        assert_eq!(
+            stop_limit.order_type.limit_price().unwrap().amount(),
+            dec!(181.00)
+        );
     }
 
     #[test]

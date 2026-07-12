@@ -93,10 +93,10 @@ impl<Currency> Money<Currency> {
 /// оба операнда — `Money<Currency>` с одним и тем же `Currency`.
 /// `Money<Usd> + Money<Eur>` не компилируется.
 impl<Currency> std::ops::Add for Money<Currency> {
-    type Output = Money<Currency>;
+    type Output = Self;
 
-    fn add(self, rhs: Money<Currency>) -> Money<Currency> {
-        Money::new(self.amount + rhs.amount)
+    fn add(self, rhs: Self) -> Self {
+        Self::new(self.amount + rhs.amount)
     }
 }
 

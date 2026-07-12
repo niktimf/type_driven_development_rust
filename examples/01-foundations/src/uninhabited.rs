@@ -7,7 +7,7 @@
 use std::convert::Infallible;
 use std::str::FromStr;
 
-/// Анти-пример из статьи: 
+/// Анти-пример из статьи:
 /// свободной функции `Result<i32, Infallible>` не нужен — он оправдан,
 /// только когда нужно соответствовать `Result`-форме трейта.
 pub fn always_ok_wrapped() -> Result<i32, Infallible> {
@@ -27,7 +27,7 @@ impl FromStr for ClientOrderId {
     type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(ClientOrderId(s.to_string()))
+        Ok(Self(s.to_string()))
     }
 }
 
