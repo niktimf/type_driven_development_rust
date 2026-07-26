@@ -22,26 +22,26 @@ fn place_order(order: DraftOrder, binance: &Binance) -> Result<BinanceOrderId, B
 }
 ```
 
-Появилась вторая площадка — и простота кончилась.
-Ленивый ход — `enum` по биржам и `match` на каждом вызове:
+Появилась вторая — и простота кончилась.
+Первое что может прийти в голову это `enum` по биржам и `match` на каждом вызове:
 
 ```rust
-enum Exchange {
+enum ExchangeKind {
     Binance(Binance),
     Nyse(Nyse),
 }
 
-fn route(order: DraftOrder, exchange: &Exchange) -> Result</* ??? */, /* ??? */> {
+fn route(order: DraftOrder, exchange: &ExchangeKind) -> Result</* ??? */, /* ??? */> {
     match exchange {
-        Exchange::Binance(b) => b.submit(order),
-        Exchange::Nyse(n) => n.submit(order),
+        ExchangeKind::Binance(b) => b.place(order),
+        ExchangeKind::Nyse(n) => n.place(order),
     }
 }
 ```
 
 Проблема видна уже на типе возврата: у Binance свой `OrderId` и свой `Error`, у NYSE — свои, а `match` обязан вернуть что-то одно.
-Каждая новая площадка — правка всех таких `match`-ей, а они расползутся по коду ровно так, как мы видели в части 1.
-Плюс список бирж зашит в `enum`: пользователь вашей библиотеки не подключит свою площадку, не залезая в исходник.
+Каждая новая биржа — правка всех таких `match`-ей, а они расползутся по коду ровно так, как мы видели в части 1.
+Плюс список бирж жёстко зафиксирован в `enum`: пользователь вашей библиотеки не подключит своюcla, не залезая в исходник.
 
 `enum` здесь не виноват — просто это не его задача.
 В части 1 он отлично кодировал «одно из» для данных с закрытым набором форм.
@@ -52,12 +52,12 @@ fn route(order: DraftOrder, exchange: &Exchange) -> Result</* ??? */, /* ??? */>
 Вынесем поведение в трейт — контракт «умею принять заявку»:
 
 ```rust
-trait ExchangeConnector {
-    fn submit(&self, order: DraftOrder) -> Result<OrderId, ExchangeError>;
+trait Exchange {
+    fn place(&self, order: DraftOrder) -> Result<OrderId, ExchangeError>;
 }
 ```
 
-(`OrderId` и `ExchangeError` пока общие на всех — что с этим не так и как сделать их «своими на каждой бирже», разберём в разделе про ассоциированные типы.)
+(`OrderId` и `ExchangeError` пока общие для всех — что с этим не так и как сделать их «своими на каждой бирже», разберём в разделе про ассоциированные типы.)
 Это нижний слой `DraftOrder::submit` из части 1: коннектор отдаёт сырой `OrderId` биржи, а `WorkingOrder` из него собирает уже сам `submit`.
 
 Каждая площадка выполняет контракт по-своему:
