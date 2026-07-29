@@ -27,6 +27,7 @@ use std::marker::PhantomData;
 use crate::adt::OrderType;
 use crate::newtype::ids::OrderId;
 use crate::newtype::market::{InstrumentId, Price, Quantity, Side};
+use crate::uninhabited::ClientOrderId;
 
 /// Биржа отклонила заявку при постановке.
 #[derive(Debug, PartialEq, Eq)]
@@ -78,6 +79,11 @@ pub enum RejectReason {
 /// let _second = draft.submit(); // draft moved — повторно подать нельзя
 /// ```
 pub struct DraftOrder {
+    /// Наш идентификатор: придумываем сами и кладём в исходящее сообщение.
+    /// Биржа вернёт его в ответе — по нему и разбирают, к какой из отправленных
+    /// заявок ответ относится. Биржевой `OrderId` для этого не годится:
+    /// он приходит внутри того же ответа.
+    client_order_id: ClientOrderId,
     symbol: String,
     side: Side,
     quantity: Quantity,
@@ -91,6 +97,7 @@ impl DraftOrder {
     /// [`place_limit_order`]: crate::newtype::market::place_limit_order
     pub fn limit(symbol: String, side: Side, price: Price, quantity: Quantity) -> Self {
         Self {
+            client_order_id: next_client_order_id(&symbol),
             symbol,
             side,
             quantity,
@@ -101,6 +108,7 @@ impl DraftOrder {
     /// Рыночная заявка — цены нет в принципе.
     pub fn market(symbol: String, side: Side, quantity: Quantity) -> Self {
         Self {
+            client_order_id: next_client_order_id(&symbol),
             symbol,
             side,
             quantity,
@@ -117,6 +125,7 @@ impl DraftOrder {
         quantity: Quantity,
     ) -> Self {
         Self {
+            client_order_id: next_client_order_id(&symbol),
             symbol,
             side,
             quantity,
@@ -124,11 +133,17 @@ impl DraftOrder {
         }
     }
 
+    /// Наш идентификатор — единственный, который есть до отправки.
+    pub fn client_order_id(&self) -> &ClientOrderId {
+        &self.client_order_id
+    }
+
     /// Постановка в стакан: биржа резолвит символ в [`InstrumentId`],
-    /// присваивает id заявки и может отклонить.
+    /// присваивает свой id заявки и может отклонить.
     /// Здесь упрощённо: всегда принимаем.
     pub fn submit(self) -> Result<WorkingOrder, RejectReason> {
         Ok(WorkingOrder {
+            client_order_id: self.client_order_id,
             id: assign_id(),
             instrument: resolve(&self.symbol),
             side: self.side,
@@ -142,6 +157,9 @@ impl DraftOrder {
 /// присвоила id заявки и резолвила символ в id инструмента.
 /// Ждёт исполнения или отмены.
 pub struct WorkingOrder {
+    /// Пришёл с черновика и не меняется.
+    client_order_id: ClientOrderId,
+    /// Присвоила биржа — до подтверждения его не существовало.
     id: OrderId,
     instrument: InstrumentId,
     side: Side,
@@ -150,6 +168,10 @@ pub struct WorkingOrder {
 }
 
 impl WorkingOrder {
+    pub fn client_order_id(&self) -> &ClientOrderId {
+        &self.client_order_id
+    }
+
     pub fn id(&self) -> OrderId {
         self.id
     }
@@ -325,10 +347,17 @@ impl Order<order_state::Filled> {
     pub fn settle(self) {}
 }
 
-/// Биржа присваивает id заявке при постановке.
+/// Биржа присваивает свой id заявке при постановке.
 /// Здесь упрощённо — фиксированный id.
 const fn assign_id() -> OrderId {
     OrderId(1)
+}
+
+/// Наш идентификатор заявки — придумываем его сами, до отправки.
+/// В реальном коде это монотонный счётчик или UUID, уникальный в пределах сессии.
+/// Здесь упрощённо — по символу инструмента.
+fn next_client_order_id(symbol: &str) -> ClientOrderId {
+    ClientOrderId(format!("cl-{symbol}-1"))
 }
 
 /// Биржа резолвит символ инструмента (`"AAPL"`) в числовой [`InstrumentId`] на входе.
@@ -366,6 +395,19 @@ mod tests {
         assert_eq!(working.id(), OrderId(1));
         assert_eq!(working.instrument(), InstrumentId(1));
         assert!(working.order_type().limit_price().is_some());
+    }
+
+    #[test]
+    fn our_id_exists_before_submit_and_survives_it() {
+        let draft = draft();
+        let ours = draft.client_order_id().0.clone();
+
+        // до отправки биржевого id нет — брать его негде, поля не существует
+        let working = draft.submit().expect("accepted");
+
+        // наш не изменился, биржевой появился
+        assert_eq!(working.client_order_id().0, ours);
+        assert_eq!(working.id(), OrderId(1));
     }
 
     #[test]
