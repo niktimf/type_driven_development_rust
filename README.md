@@ -29,3 +29,11 @@ cd examples/04-nightly
 cargo build
 cargo test
 ```
+
+Раздел про CGP собирается отдельно — крейт `cgp` требует свежий компилятор,
+а синтаксис его макросов заметно менялся между версиями:
+
+```sh
+cd examples
+cargo test -p tdd-02-contracts --features cgp
+```

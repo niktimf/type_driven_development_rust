@@ -5,3 +5,9 @@ edition = "2024"
 publish = false
 
 [dependencies]
+tdd-01-foundations = { path = "../01-foundations" }
+rust_decimal = { version = "1", features = ["macros"] }
+cgp = { version = "0.7", optional = true }
+
+[features]
+cgp = ["dep:cgp"]
