@@ -103,14 +103,14 @@ impl<Quote: Currency> DraftOrder<Quote> {
     /// `WorkingOrder<Usd, u64>` для REST, `WorkingOrder<Usd, FixOrderId>` для FIX.
     pub fn submit<EC>(
         self,
-        exchange: &EC,
+        exchange_client: &EC,
     ) -> Result<WorkingOrder<Quote, EC::ExchangeOrderId>, RejectReason>
     where
         EC: ExchangeClient<Quote = Quote>,
     {
         // ClientOrderId уже лежит в self — он был присвоен при сборке черновика.
         // Идентификатор площадки существует только после её ответа.
-        let exchange_id = exchange
+        let exchange_id = exchange_client
             .submit_order(&self)
             .map_err(|_| RejectReason::MarketClosed)?;
 

@@ -320,13 +320,13 @@ trait ExchangeClient<Id, Error> {
 Параметры протекают в каждую функцию, которая работает с клиентом площадки, и тянутся дальше через все слои:
 
 ```rust
-fn route<EC, Id, Error>(order: DraftOrder, exchange: &EC) -> Result<Id, Error>
+fn route<EC, Id, Error>(order: DraftOrder, exchange_client: &EC) -> Result<Id, Error>
 where
     EC: ExchangeClient<Id, Error>,
 ```
 
 Но хуже другое: типы выбирает вызывающий, а не площадка.
-Ничто не мешает написать для одной площадки два `impl`-а — `ExchangeClient<RestOrderId, _>` и `ExchangeClient<String, _>`, — и тогда обычный `exchange.submit_order(&order)` станет неоднозначным: компилятор не сможет понять, какой именно `impl` имелся в виду (`error[E0282]`), и турбофиш(`::<>`) придётся писать на каждом вызове.
+Ничто не мешает написать для одной площадки два `impl`-а — `ExchangeClient<RestOrderId, _>` и `ExchangeClient<String, _>`, — и тогда обычный `exchange_client.submit_order(&order)` станет неоднозначным: компилятор не сможет понять, какой именно `impl` имелся в виду (`error[E0282]`), и турбофиш(`::<>`) придётся писать на каждом вызове.
 А ведь у площадки формат идентификатора ровно один — это её свойство, а не параметр, который кто-то подбирает снаружи.
 
 ### Решение: тип принадлежит реализации
@@ -370,10 +370,10 @@ impl ExchangeClient for FixExchange {
 
 ```rust
 fn route<EC: ExchangeClient>(
-    order: DraftOrder,
-    exchange: &EC,
+    order: &DraftOrder,
+    exchange_client: &EC,
 ) -> Result<EC::ExchangeOrderId, EC::Error> {
-    exchange.submit_order(order)
+    exchange_client.submit_order(order)
 }
 ```
 

@@ -293,14 +293,14 @@ impl ExchangeClient for Simulator {
 /// не на сигнатуре, а при инстанцировании, и `cargo check` её не увидит —
 /// нужен именно `cargo build` (или запуск теста, который его вызывает).
 pub fn submit_batch_typed<EC, const N: usize>(
-    exchange: &EC,
+    exchange_client: &EC,
     orders: [DraftOrder<EC::Quote>; N],
 ) -> [Result<EC::ExchangeOrderId, EC::Error>; N]
 where
     EC: ExchangeClient + Exchange,
 {
     const { assert!(N <= EC::MAX_BATCH, "batch exceeds exchange limit") };
-    orders.each_ref().map(|order| exchange.submit_order(order))
+    orders.each_ref().map(|order| exchange_client.submit_order(order))
 }
 
 #[cfg(test)]
