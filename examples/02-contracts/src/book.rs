@@ -10,7 +10,7 @@ mod sealed {
     pub trait Sealed {}
 }
 
-/// Носитель числа: с ним «допустимая глубина» выражается обычным trait bound.
+/// Обёртка над числом: через неё «допустимая глубина» записывается обычным trait bound.
 pub struct BookDepth<const N: usize>;
 
 /// Список глубин задаёт не площадка, а наш код: под каждую написана стратегия,
@@ -53,7 +53,7 @@ pub struct OrderBook<Quote, const DEPTH: usize> {
     asks: [Level<Quote>; DEPTH],
 }
 
-// Без bound-а на `Quote` — тот же приём, что у `Level` и `Price`:
+// Без bound-а на `Quote`, как у `Level` и `Price`:
 // маркер валюты физически не хранится, `#[derive(Copy)]` дал бы лишний bound.
 impl<Quote, const DEPTH: usize> Clone for OrderBook<Quote, DEPTH> {
     fn clone(&self) -> Self {
