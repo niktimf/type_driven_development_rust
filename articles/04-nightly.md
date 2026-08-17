@@ -1,4 +1,4 @@
-# Type-driven development в Rust. Часть 4/5: выходим за стабильный Rust — pattern types, const traits, gen-блоки, never type
+# Type-driven development в Rust. Часть 4/5: выходим за стабильный Rust — pattern types, const traits, gen blocks, never type
 
 _Черновик в работе._
 
