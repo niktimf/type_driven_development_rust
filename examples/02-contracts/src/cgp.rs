@@ -181,7 +181,7 @@ mod tests {
     /// добавление `SubmitViaFix` не потребовало трогать ни `SubmitViaRest`,
     /// ни `SubmitToSimulator`, ни трейт `CanSubmitOrder`.
     #[test]
-    fn a_third_provider_is_just_another_wiring() {
+    fn a_third_provider_is_just_another_delegation() {
         #[derive(Default)]
         struct FixApp;
 
