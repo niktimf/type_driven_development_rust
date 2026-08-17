@@ -120,7 +120,7 @@ impl<Quote: Currency> DraftOrder<Quote> {
 }
 ```
 
-Тип идентификатора в результате следует за площадкой:
+Тип идентификатора в результате задаёт площадка:
 `WorkingOrder<Usd, RestOrderId>` для REST-подключения,
 `WorkingOrder<Usd, FixOrderId>` для FIX.
 `ClientOrderId` при этом остаётся тем же самым — он наш, и от площадки не зависит.
@@ -339,6 +339,9 @@ trait ExchangeClient {
     type Error;
 
     fn submit_order(&self, order: &DraftOrder) -> Result<Self::ExchangeOrderId, Self::Error>;
+
+    /// Отменить можно только тем id, который вернула площадка.
+    fn cancel_order(&self, id: Self::ExchangeOrderId) -> Result<(), Self::Error>;
 }
 
 
