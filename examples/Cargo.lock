@@ -731,6 +731,9 @@ version = "0.1.0"
 [[package]]
 name = "tdd-04-nightly"
 version = "0.1.0"
+dependencies = [
+ "tdd-02-contracts",
+]
 
 [[package]]
 name = "tinyvec"

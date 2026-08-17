@@ -9,7 +9,7 @@
 
 ## Часть 1 — Основы (newtype, ADT, uninhabited, phantom, typestate)
 
-- [The Typestate Pattern in Rust](http://cliffle.com/blog/rust-typestate/) — Cliff Biffle, 2019. Канонический разбор typestate на примере HTTP response builder (порядок: статус-строка → заголовки → тело).
+- [The Typestate Pattern in Rust](http://cliffle.com/blog/rust-typestate/) — Cliff Biffle, 2019. Канонический разбор typestate на примере HTTP response builder (порядок: статус-строка -> заголовки -> тело).
 - [Pretty State Machine Patterns in Rust](https://hoverbear.org/blog/rust-state-machine-pattern/) — Hoverbear. Несколько способов закодировать конечный автомат: enum-обёртки, отдельные struct-ы, generic-параметры состояния.
 - [State Machines: Introduction](https://blog.yoshuawuyts.com/state-machines/) — Yosh Wuyts, 2020. Современный взгляд на ту же тему.
 - [`!` (never type)](https://doc.rust-lang.org/std/primitive.never.html) — официальные docs по uninhabited типу.
@@ -24,14 +24,14 @@
 - [CGP — Context-Generic Programming](https://github.com/contextgeneric/cgp) — модульная парадигма поверх traits + associated types, требует Rust 1.81+. Работа над CGP началась в июле 2022 при разработке Hermes IBC Relayer в Informal Systems; сейчас используется в [hermes-sdk](https://github.com/informalsystems/hermes-sdk) (новой версии relayer-а), не в оригинальном [hermes](https://github.com/informalsystems/hermes).
 - [contextgeneric.dev](https://contextgeneric.dev) — доки CGP и книга «Context-Generic Programming Patterns».
 
-## Часть 3 — Валидатор (типы-списки, compile-time валидаторы, event sourcing)
+## Часть 3 — Валидатор (type-level lists (HList), compile-time validators, event sourcing)
 
 - [Type-Level Programming in Rust](https://willcrichton.net/notes/type-level-programming/) — Will Crichton, 24.04.2020. Peano-числа, тип-уровень список через кортежи `(T, L)`, рекурсивная диспетчеризация трейтов.
 - [Gentle Intro to Type-level Recursion in Rust: From Zero to HList Sculpting](https://beachape.com/blog/2017/03/12/gentle-intro-to-type-level-recursion-in-Rust-from-zero-to-frunk-hlist-sculpting/) — Lloyd Chan, 12.03.2017.
 - [`frunk` crate docs](https://docs.rs/frunk/) — де-факто библиотека HList/Coproduct.
 - [`static_assertions` crate](https://docs.rs/static_assertions/) — макросы compile-time-проверок.
 
-## Часть 4 — Nightly (pattern types, const traits, gen-блоки, эффекты)
+## Часть 4 — Nightly (pattern types, const traits, gen blocks, never type)
 
 - [A grand vision for Rust — effects](https://blog.yoshuawuyts.com/a-grand-vision-for-rust/#effects) — Yosh Wuyts. О направлении языка в сторону алгебраических эффектов.
 - [Extending Rust's Effect System](https://blog.yoshuawuyts.com/extending-rusts-effect-system/) — Yosh Wuyts. Прямое продолжение «grand vision», про эффект-полиморфизм («effect generics»).

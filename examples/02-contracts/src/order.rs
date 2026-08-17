@@ -5,9 +5,9 @@ use rust_decimal::Decimal;
 use crate::domain::{ClientOrderId, Currency, Price, Quantity, RejectReason, Side};
 use crate::exchange::ExchangeClient;
 
-/// Тип заявки. Параметр `Quote` пришёл сюда вместе с [`Price`]: одному типу
-/// добавили валюту, и параметр протёк во всё, что цену держит — про это
-/// практика «Параметр типа расползается сам» в статье.
+/// Тип заявки. Параметр `Quote` пришёл сюда вместе с [`Price`]: у цены
+/// появилась валюта, и параметр обязан стоять на каждом типе, где лежит
+/// цена, — см. практику «Параметр типа расползается сам» в статье.
 #[derive(Debug, PartialEq, Eq)]
 pub enum OrderType<Quote> {
     /// У рыночной заявки цены нет в принципе — поля под неё не существует.
@@ -99,8 +99,8 @@ impl<Quote: Currency> DraftOrder<Quote> {
     /// Постановка в стакан. Часть 1 ходила «на биржу» абстрактно — теперь на
     /// входе контракт, и площадка любая, лишь бы котировала в той же валюте.
     ///
-    /// Тип идентификатора в результате следует за площадкой:
-    /// `WorkingOrder<Usd, u64>` для REST, `WorkingOrder<Usd, FixOrderId>` для FIX.
+    /// Тип идентификатора в результате задаёт площадка:
+    /// `WorkingOrder<Usd, RestOrderId>` для REST, `WorkingOrder<Usd, FixOrderId>` для FIX.
     pub fn submit<EC>(
         self,
         exchange_client: &EC,
@@ -121,8 +121,9 @@ impl<Quote: Currency> DraftOrder<Quote> {
 /// Рабочая заявка: площадка приняла. Идентификатора два, и оба нужны.
 ///
 /// `client_id` был до отправки — по нему разбирают ответы площадки.
-/// `exchange_id` появился только из ответа — и отменять можно лишь им. В части 1 они были схлопнуты в одно поле `id`; это было
-/// упрощение, которое здесь и разворачивается.
+/// `exchange_id` появился только из ответа — и отменять можно лишь им.
+/// В части 1 они были схлопнуты в одно поле `id`;
+/// это было упрощение, которое здесь разворачивается.
 pub struct WorkingOrder<Quote, Id> {
     client_id: ClientOrderId,
     exchange_id: Id,
@@ -166,8 +167,8 @@ impl<Quote, Id> WorkingOrder<Quote, Id> {
 /// Хелперы для тестов других модулей крейта.
 ///
 /// Лежат в публичном API намеренно: валидный [`Quantity`] собирается только
-/// через [`crate::domain::InstrumentSpec`], а `#[cfg(test)] mod` между
-/// модулями не расшарить. Крейт с `publish = false`, наружу не уезжает.
+/// через [`crate::domain::InstrumentSpec`],
+/// а `#[cfg(test)] mod` между модулями не расшарить.
 #[doc(hidden)]
 pub mod tests_support {
     use super::*;

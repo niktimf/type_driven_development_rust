@@ -1,8 +1,7 @@
 //! Контракт площадки и его реализации.
 //!
 //! Площадки названы по протоколу, а не по бренду: формат идентификатора
-//! определяет протокол, а не рынок. Отсюда и разные ассоциированные типы —
-//! число, строка и 32 байта в один тип не сводятся.
+//! определяет протокол, а не рынок. Отсюда и разные ассоциированные типы.
 
 use std::convert::Infallible;
 use std::fmt;
@@ -12,8 +11,8 @@ use crate::domain::Currency;
 use crate::order::DraftOrder;
 use crate::router::ErasedOrderId;
 
-/// `ErasedOrderId` не разбирается обратно сама — площадка обязана предъявить
-/// путь назад через `TryFrom`. Одна и та же ошибка на все три нативных типа:
+/// Ошибка разбора `ErasedOrderId` в нативный идентификатор.
+/// Разбор задаёт сама площадка через `TryFrom`; ошибка при этом одна на все три нативных типа:
 /// само значение всё равно теряется, важен только факт «строка не подошла».
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NativeIdParseError {
@@ -21,9 +20,9 @@ pub struct NativeIdParseError {
     pub raw: Box<str>,
 }
 
-/// Метаданные площадки. Вынесено отдельным трейтом не случайно:
-/// ассоциированная константа делает трейт dyn-несовместимым, а
-/// [`ExchangeClient`] нам ещё понадобится в `Box<dyn ...>`.
+/// Метаданные площадки.
+/// Вынесено отдельным трейтом: ассоциированная константа делает трейт dyn-несовместимым,
+/// а [`ExchangeClient`] нам ещё понадобится в `Box<dyn ...>`.
 pub trait Exchange {
     const NAME: &'static str;
     /// Сколько заявок площадка принимает одним пакетом.
@@ -57,17 +56,18 @@ pub trait ExchangeClient {
     }
 }
 
-// ─── JSON-over-HTTP ──────────────────────────────────────────────────────────
+// REST
 
-/// Числовой идентификатор в теле ответа.
+/// REST-площадка: JSON поверх HTTP, идентификатор заявки — число в теле ответа.
 #[derive(Debug, Default)]
 pub struct RestExchange {
+    /// Счётчик для выдачи идентификаторов в заглушке. `AtomicU64`, а не `Cell`:
+    /// `submit_order` берёт `&self`, а роутер требует `Sync`.
     next_id: AtomicU64,
 }
 
-/// Идентификатор REST-площадки. Внутри `u64`, но это не `u64`: у симулятора
-/// ниже точно такое же внутреннее представление, и путать их нельзя, как
-/// `AccountId` и `OrderId` в начале части 1.
+/// Идентификатор REST-площадки. Newtype над `u64`, как в части 1, —
+/// чтобы не перепутать с [`SimOrderId`], у которого внутри тоже `u64`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RestOrderId(pub u64);
 
@@ -105,7 +105,7 @@ impl ExchangeClient for RestExchange {
     }
 }
 
-/// Обратный путь для REST: строка должна быть тем же числом, которое сама
+/// Разбор для REST: строка должна быть тем же числом, которое сама
 /// площадка когда-то напечатала через `Display`.
 impl TryFrom<ErasedOrderId> for RestOrderId {
     type Error = NativeIdParseError;
@@ -118,11 +118,12 @@ impl TryFrom<ErasedOrderId> for RestOrderId {
     }
 }
 
-// ─── FIX ─────────────────────────────────────────────────────────────────────
+// FIX
 
 /// FIX-сессия: идентификатор — строка, тег 37 `OrderID`.
 #[derive(Debug, Default)]
 pub struct FixExchange {
+    /// Счётчик для выдачи идентификаторов в заглушке, см. [`RestExchange`].
     next_id: AtomicU64,
 }
 
@@ -162,17 +163,17 @@ impl ExchangeClient for FixExchange {
     }
 }
 
-/// Обратный путь для FIX: нативный id уже строка, разбор тривиален и не может
-/// провалиться — но сигнатура `TryFrom` у роутера одна на все площадки.
+/// Разбор для FIX: нативный id уже строка, ошибиться негде — но сигнатура
+/// `TryFrom` у роутера одна на все площадки.
 impl TryFrom<ErasedOrderId> for FixOrderId {
     type Error = NativeIdParseError;
 
     fn try_from(id: ErasedOrderId) -> Result<Self, Self::Error> {
-        Ok(FixOrderId(String::from(id.raw)))
+        Ok(FixOrderId(id.raw.into()))
     }
 }
 
-// ─── On-chain ────────────────────────────────────────────────────────────────
+// On-chain
 
 /// DEX: идентификатор — хеш транзакции.
 #[derive(Debug, Default)]
@@ -215,7 +216,7 @@ impl ExchangeClient for OnChainExchange {
     }
 }
 
-/// Обратный путь для on-chain: 32 байта — это ровно 64 hex-символа, ни больше
+/// Разбор для on-chain: 32 байта — это ровно 64 hex-символа, ни больше
 /// ни меньше, и каждая пара символов обязана быть валидным байтом.
 impl TryFrom<ErasedOrderId> for TxHash {
     type Error = NativeIdParseError;
@@ -235,12 +236,10 @@ impl TryFrom<ErasedOrderId> for TxHash {
     }
 }
 
-// ─── Симулятор ───────────────────────────────────────────────────────────────
+// Симулятор
 
-/// Детерминированный симулятор для бэктеста: отказать не может в принципе.
-/// Это `Infallible` из части 1; в части 4 он станет `!`.
-/// Идентификатор симулятора. Внутри тот же `u64`, что у [`RestOrderId`], —
-/// и это разные типы: подставить один вместо другого компилятор не даст.
+/// Идентификатор симулятора — newtype над `u64`, как и [`RestOrderId`];
+/// типы при этом разные.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SimOrderId(pub u64);
 
@@ -261,8 +260,11 @@ impl TryFrom<ErasedOrderId> for SimOrderId {
     }
 }
 
+/// Детерминированный симулятор для бэктеста: отказать не может в принципе,
+/// поэтому `type Error = Infallible` из части 1; в части 4 он станет `!`.
 #[derive(Debug, Default)]
 pub struct Simulator {
+    /// Счётчик для выдачи идентификаторов в заглушке, см. [`RestExchange`].
     next_id: AtomicU64,
 }
 
@@ -285,11 +287,12 @@ impl ExchangeClient for Simulator {
     }
 }
 
-/// Пакет с длиной в типе. Связать `N` с [`Exchange::MAX_BATCH`] через bound
-/// на стабильном Rust нельзя — `where N <= Self::MAX_BATCH` это
-/// `generic_const_exprs`, он до сих пор в nightly. Остаётся const-блок.
+/// Пакет с длиной в типе. Записать `where N <= Self::MAX_BATCH` нельзя ни на
+/// каком канале — `where` принимает только баунды; на nightly сравнение
+/// прячут в баунд-тип через `generic_const_exprs`.
+/// На стабильном остаётся const-блок.
 ///
-/// Оговорка существенная: это post-monomorphization error. Она возникает
+/// Проверка в const-блоке — post-monomorphization error: она возникает
 /// не на сигнатуре, а при инстанцировании, и `cargo check` её не увидит —
 /// нужен именно `cargo build` (или запуск теста, который его вызывает).
 pub fn submit_batch_typed<EC, const N: usize>(
@@ -327,8 +330,7 @@ mod tests {
     #[test]
     fn simulator_cannot_fail() {
         let sim = Simulator::default();
-        // type Error = Infallible: у ветки Err нет ни одного обитателя,
-        // и пустой match это доказывает. `let Ok(..)` без else здесь не годится.
+        // type Error = Infallible: у ветки Err нет ни одного значения.
         let id = match sim.submit_order(&draft()) {
             Ok(id) => id,
             Err(never) => match never {},

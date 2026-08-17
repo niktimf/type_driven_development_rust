@@ -5,3 +5,4 @@ edition = "2024"
 publish = false
 
 [dependencies]
+tdd-02-contracts = { path = "../02-contracts" }
