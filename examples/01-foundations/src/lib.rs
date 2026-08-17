@@ -1,4 +1,4 @@
-//! Примеры к части 1/5: newtype, ADT, пустые типы, phantom types, typestate.
+//! Примеры к части 1/5: newtype, ADT, uninhabited types, phantom types, typestate.
 //!
 //! У каждого раздела статьи — свой модуль.
 

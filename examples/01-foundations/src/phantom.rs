@@ -103,7 +103,7 @@ impl<Currency> std::ops::Add for Money<Currency> {
 /// Номинал заявки в валюте инструмента: тот самый `price * quantity` из
 /// newtype-раздела ([`crate::newtype::market::notional`]), но обёрнутый в `Money<C>`.
 /// Валюту `C` задаёт спецификация инструмента, так что номиналы в разных валютах
-/// сложить уже не получится — та же защита, что у `Money<Usd> + Money<Eur>`.
+/// сложить уже не получится, как и `Money<Usd> + Money<Eur>`.
 pub fn notional<C>(price: Price, quantity: Quantity) -> Money<C> {
     Money::new(price.amount() * quantity.amount())
 }
