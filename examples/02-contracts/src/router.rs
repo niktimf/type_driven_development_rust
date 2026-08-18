@@ -25,7 +25,7 @@ pub enum RouterError {
     Rejected { exchange: &'static str, detail: String },
     /// `ErasedOrderId::raw` не разобрался обратно в нативный id площадки —
     /// например, кто-то передал `raw`, который эта площадка не выдавала.
-    UnparseableOrderId(String),
+    UnparseableOrderId,
 }
 
 /// Приводит типы конкретной площадки к общим типам роутера.
@@ -42,7 +42,6 @@ impl<EC> ExchangeClient for Erased<EC>
 where
     EC: ExchangeClient<Quote = Usd> + Exchange,
     EC::ExchangeOrderId: Display + TryFrom<ErasedOrderId>,
-    <EC::ExchangeOrderId as TryFrom<ErasedOrderId>>::Error: std::fmt::Debug,
     EC::Error: std::fmt::Debug,
 {
     type Quote = Usd;
@@ -68,7 +67,7 @@ where
 
     fn cancel_order(&self, id: ErasedOrderId) -> Result<(), RouterError> {
         let native = EC::ExchangeOrderId::try_from(id)
-            .map_err(|e| RouterError::UnparseableOrderId(format!("{e:?}")))?;
+            .map_err(|_| RouterError::UnparseableOrderId)?;
         self.0.cancel_order(native).map_err(|e| RouterError::Rejected {
             exchange: EC::NAME,
             detail: format!("{e:?}"),
@@ -106,7 +105,6 @@ impl Router {
     where
         EC: ExchangeClient<Quote = Usd> + Exchange + Send + Sync + 'static,
         EC::ExchangeOrderId: Display + TryFrom<ErasedOrderId>,
-        <EC::ExchangeOrderId as TryFrom<ErasedOrderId>>::Error: std::fmt::Debug,
         EC::Error: std::fmt::Debug,
     {
         self.exchanges
@@ -179,7 +177,7 @@ mod tests {
 
         assert!(matches!(
             router.cancel(garbage),
-            Err(RouterError::UnparseableOrderId(_))
+            Err(RouterError::UnparseableOrderId)
         ));
     }
 }
