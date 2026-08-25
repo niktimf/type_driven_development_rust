@@ -28,7 +28,8 @@
 
 - [Type-Level Programming in Rust](https://willcrichton.net/notes/type-level-programming/) — Will Crichton, 24.04.2020. Peano-числа, тип-уровень список через кортежи `(T, L)`, рекурсивная диспетчеризация трейтов.
 - [Gentle Intro to Type-level Recursion in Rust: From Zero to HList Sculpting](https://beachape.com/blog/2017/03/12/gentle-intro-to-type-level-recursion-in-Rust-from-zero-to-frunk-hlist-sculpting/) — Lloyd Chan, 12.03.2017.
-- [`frunk` crate docs](https://docs.rs/frunk/) — де-факто библиотека HList/Coproduct.
+- [`frunk` crate docs](https://docs.rs/frunk/) — HList (`HCons`/`HNil`, `hlist!`), `Generic`, `Coproduct`, `Validated`; версия 0.5.0, стабильный Rust без `unsafe`. Проверено по docs.rs 2026-08-18.
+- [`typenum` crate docs](https://docs.rs/typenum/) — числа на уровне типов (`UInt`/`UTerm`, `consts::U0..U1024`), мост в const generics через `generic_const_mappings`; версия 1.20.1. Проверено по docs.rs 2026-08-18.
 - [`static_assertions` crate](https://docs.rs/static_assertions/) — макросы compile-time-проверок.
 
 ## Часть 4 — Nightly (pattern types, const traits, gen blocks, never type)
