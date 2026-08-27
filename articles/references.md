@@ -30,7 +30,8 @@
 - [Gentle Intro to Type-level Recursion in Rust: From Zero to HList Sculpting](https://beachape.com/blog/2017/03/12/gentle-intro-to-type-level-recursion-in-Rust-from-zero-to-frunk-hlist-sculpting/) — Lloyd Chan, 12.03.2017.
 - [`frunk` crate docs](https://docs.rs/frunk/) — HList (`HCons`/`HNil`, `hlist!`), `Generic`, `Coproduct`, `Validated`; версия 0.5.0, стабильный Rust без `unsafe`. Проверено по docs.rs 2026-08-18.
 - [`typenum` crate docs](https://docs.rs/typenum/) — числа на уровне типов (`UInt`/`UTerm`, `consts::U0..U1024`), мост в const generics через `generic_const_mappings`; версия 1.20.1. Проверено по docs.rs 2026-08-18.
-- [`static_assertions` crate](https://docs.rs/static_assertions/) — макросы compile-time-проверок.
+- [`typed-builder` crate docs](https://docs.rs/typed-builder/) — type-state builder: обязательные поля отслеживаются generic-параметрами, `.build()` без них не компилируется; версия 0.23.2. Проверено по docs.rs 2026-08-18.
+- [`static_assertions` crate docs](https://docs.rs/static_assertions/) — `const_assert!`, `assert_impl_all!`, `assert_fields!` и другие проверки при компиляции; версия 1.1.0. Проверено по docs.rs 2026-08-18.
 
 ## Часть 4 — Nightly (pattern types, const traits, gen blocks, never type)
 
