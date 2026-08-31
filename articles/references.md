@@ -32,6 +32,8 @@
 - [`typenum` crate docs](https://docs.rs/typenum/) — числа на уровне типов (`UInt`/`UTerm`, `consts::U0..U1024`), мост в const generics через `generic_const_mappings`; версия 1.20.1. Проверено по docs.rs 2026-08-18.
 - [`typed-builder` crate docs](https://docs.rs/typed-builder/) — type-state builder: обязательные поля отслеживаются generic-параметрами, `.build()` без них не компилируется; версия 0.23.2. Проверено по docs.rs 2026-08-18.
 - [`static_assertions` crate docs](https://docs.rs/static_assertions/) — `const_assert!`, `assert_impl_all!`, `assert_fields!` и другие проверки при компиляции; версия 1.1.0. Проверено по docs.rs 2026-08-18.
+- [`rust-fsm` crate docs](https://docs.rs/rust-fsm/) — DSL `state_machine!`: состояния, входы и переходы одной декларацией; состояние — рантайм, недопустимый переход — `Err` из `consume`; версия 0.8.0 (июль 2025), 1.2M загрузок. Проверено по crates.io и docs.rs 2026-08-18.
+- [`typestate` crate docs](https://docs.rs/typestate/) — proc-макрос DSL для typestate; версия 0.8.0 (июль 2021, с тех пор релизов нет), 42k загрузок. Проверено по crates.io 2026-08-18.
 - [`cqrs-es` crate docs](https://docs.rs/cqrs-es/) — CQRS/event sourcing: `Aggregate` с `Command`/`Event`/`Error`, `handle` с `Result`, `apply` без; версия 0.5.0 (декабрь 2025), 162k загрузок. Проверено по crates.io и docs.rs 2026-08-18.
 
 ## Часть 4 — Nightly (pattern types, const traits, gen blocks, never type)
