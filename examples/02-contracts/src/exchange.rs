@@ -227,7 +227,7 @@ impl TryFrom<ErasedOrderId> for TxHash {
             return Err(NativeIdParseError { raw: id.raw });
         }
         let mut out = [0u8; 32];
-        for (byte, chunk) in out.iter_mut().zip(bytes.chunks_exact(2)) {
+        for (byte, chunk) in out.iter_mut().zip(bytes.as_chunks::<2>().0) {
             let malformed = || NativeIdParseError { raw: id.raw.clone() };
             let hex = std::str::from_utf8(chunk).map_err(|_| malformed())?;
             *byte = u8::from_str_radix(hex, 16).map_err(|_| malformed())?;
