@@ -31,8 +31,8 @@ impl<Checks> Gate<Checks> {
     /// let gate: Gate<HCons<HaltCheck, HCons<NotionalLimitCheck, HNil>>> = Gate::new();
     /// ```
     ///
-    /// Дубль проверки в списке компилятор называет хуже: `Contains<HaltCheck, _>`
-    /// доказывается двумя способами, и он просит аннотацию типа:
+    /// Дубль проверки в списке приходит другой ошибкой: `Contains<HaltCheck, _>`
+    /// доказывается двумя способами, и компилятор просит аннотацию типа:
     ///
     /// ```compile_fail
     /// use tdd_03_validator::checks::{HaltCheck, PriceBandCheck};

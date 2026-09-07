@@ -93,7 +93,7 @@ impl Check for PositionLimitCheck {
     }
 }
 
-/// Мастер-контекст умеет выдать проверке `C` её кусок.
+/// Мастер-контекст выдаёт проверке `C` её кусок.
 /// По одному `impl` на проверку.
 pub trait Provide<C: Check> {
     fn provide(&self) -> C::Ctx<'_>;
@@ -126,8 +126,8 @@ impl Provide<PositionLimitCheck> for ExchangeCtx {
 /// Прогон списка проверок: база на `HNil`, шаг на `HCons`.
 /// Останавливается на первом отказе (`?` в шаге).
 ///
-/// Шаг требует `Ctx: Provide<C>` для каждой проверки в списке. Проверка,
-/// которой мастер-контекст не умеет выдать её кусок, не пройдёт:
+/// Шаг требует `Ctx: Provide<C>` для каждой проверки в списке.
+/// Проверка без `impl Provide` для мастер-контекста не соберётся:
 ///
 /// ```compile_fail
 /// use tdd_03_validator::checks::{Check, HaltCheck, PriceBandCheck, RunChecks};
@@ -177,7 +177,7 @@ pub type Checks = HCons<
 >;
 
 /// Песочница: участники торгуют без реальных денег, проверка позиции выключена.
-/// Код прогона тот же — `RunChecks` общий на любой список.
+/// `RunChecks` общий на любой список.
 pub type SandboxChecks = HCons<HaltCheck, HCons<PriceBandCheck, HCons<NotionalLimitCheck, HNil>>>;
 
 #[cfg(test)]
