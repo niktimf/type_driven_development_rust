@@ -33,7 +33,7 @@ impl Check for HaltCheck {
 }
 
 /// Цена в коридоре вокруг последней сделки.
-/// У рыночной заявки своей цены нет
+/// У рыночной заявки своей цены нет.
 pub struct PriceBandCheck;
 
 impl Check for PriceBandCheck {
