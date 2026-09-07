@@ -10,6 +10,8 @@
 //! - [`Side`] — сторона заявки; по статье вводится в ADT-разделе как замена
 //!   `is_buy: bool`, объявлена здесь, потому что нужна [`place_limit_order`].
 
+use std::cmp::Ordering;
+
 use rust_decimal::Decimal;
 
 use crate::newtype::ids::OrderId;
@@ -136,6 +138,34 @@ impl Quantity {
     pub fn amount(&self) -> Decimal {
         self.0
     }
+
+    /// Остаток после исполнения части объёма (нужен части 3).
+    /// Инвариант сохраняется без спецификации: разность двух объёмов, кратных лоту, тоже кратна лоту.
+    /// Три исхода различаются типом: остаток есть, остатка нет, исполнено больше, чем было.
+    pub fn remaining_after(self, executed: Quantity) -> Result<Remainder, Overfill> {
+        let left = self.amount() - executed.amount();
+        match left.cmp(&Decimal::ZERO) {
+            Ordering::Greater => Ok(Remainder::Left(Quantity(left))),
+            Ordering::Equal => Ok(Remainder::Zero),
+            Ordering::Less => Err(Overfill { excess: -left }),
+        }
+    }
+}
+
+/// Остаток объёма после исполнения его части.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Remainder {
+    /// Исполнено не всё.
+    Left(Quantity),
+    /// Исполнено ровно столько, сколько было. Нулевого [`Quantity`] не бывает,
+    /// поэтому это отдельный вариант, а не `Left(0)`.
+    Zero,
+}
+
+/// Исполнено больше, чем было в заявке: `excess` — на сколько.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Overfill {
+    pub excess: Decimal,
 }
 
 /// Номинал заявки = цена * объём. Умножение `Decimal` точное.

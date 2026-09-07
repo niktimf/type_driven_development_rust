@@ -514,25 +514,29 @@ pub struct Cancel { reason: CancelReason }
 и после частичного исполнения остаётся в стакане.
 
 Переход — трейт, параметризованный событием.
-Он меняет тип заявки и одновременно порождает запись для журнала:
+Он меняет тип заявки и одновременно порождает запись для журнала;
+`Error` говорит, что может пойти не так в самом переходе:
 
 ```rust
 pub trait Apply<E> {
     type Next;
-    fn apply(self, event: E) -> (Self::Next, OrderEvent);
+    type Error;
+    fn apply(self, event: E) -> Result<(Self::Next, OrderEvent), Self::Error>;
 }
 
 impl Apply<Cancel> for Order<order_state::Working> {
     type Next = Order<order_state::Cancelled>;
+    type Error = Infallible;
 
-    fn apply(self, cancel: Cancel) -> (Order<order_state::Cancelled>, OrderEvent) {
+    fn apply(self, cancel: Cancel) -> Result<(Order<order_state::Cancelled>, OrderEvent), Infallible> {
         let event = OrderEvent::Cancelled { order_id: self.id, reason: cancel.reason };
-        (self.transition(), event)
+        Ok((self.transition(), event))
     }
 }
 ```
 
-У отмены целевое состояние одно.
+У отмены ошибиться негде, и `Error` у неё — `Infallible` из части 1.
+Целевое состояние у неё тоже одно.
 У исполнения их два: с остатком заявка остаётся в `Working`, без остатка уходит в `Filled`,
 и какой из них случится, зависит от значения, а не от типа.
 `type Next` один на `impl`, поэтому он фиксирует множество исходов, а выбор делает `apply`:
@@ -545,29 +549,36 @@ pub enum FillOutcome {
 
 impl Apply<Fill> for Order<order_state::Working> {
     type Next = FillOutcome;
+    type Error = Overfill;
 
-    fn apply(self, fill: Fill) -> (FillOutcome, OrderEvent) {
+    fn apply(self, fill: Fill) -> Result<(FillOutcome, OrderEvent), Overfill> {
         let event = OrderEvent::Filled {
             order_id: self.id, price: fill.price, quantity: fill.quantity,
         };
-        let next = match self.remaining.checked_sub(fill.quantity) {
-            Some(remaining) => FillOutcome::Partial(Order { remaining, ..self.transition() }),
-            None => FillOutcome::Full(self.transition()),
+        let next = match self.remaining.remaining_after(fill.quantity)? {
+            Remainder::Left(remaining) => FillOutcome::Partial(Order { remaining, ..self.transition() }),
+            Remainder::Zero => FillOutcome::Full(self.transition()),
         };
-        (next, event)
+        Ok((next, event))
     }
 }
 ```
 
-`checked_sub` у `Quantity` возвращает `None`, когда остатка нет:
+`remaining_after` у `Quantity` различает три исхода типом:
+`Remainder::Left` с остатком, `Remainder::Zero` без него
+и `Err(Overfill)`, если исполнено больше, чем оставалось.
+Матчинг такой `Fill` не выдаёт, но проверяет это `apply`.
+`Overfill` не исход торгов, а признак ошибки: в матчинге, в тесте с заглушкой или в журнале,
+который пришёл извне; куда он ведёт при реплее, показано ниже.
+Нулевого `Quantity` в части 1 не бывает, поэтому `Zero` — отдельный вариант, а не `Left(0)`;
 разность двух объёмов, кратных лоту, тоже кратна лоту,
-и инвариант части 1 держится без спецификации.
+и проверять её спецификацией инструмента не нужно.
 
 `impl`-ов ровно два, оба для `Working`.
 Для `Filled` и `Cancelled` реализаций нет, и переходов из них для компилятора не существует:
 
 ```rust
-let (cancelled, _) = working.apply(Cancel { reason: CancelReason::ByUser });
+let Ok((cancelled, _)) = working.apply(Cancel { reason: CancelReason::ByUser });
 cancelled.apply(fill);
 // error[E0599]: no method named `apply` found for struct `Order<State>` in the current scope
 //   method not found in `Order<Cancelled>`
@@ -606,21 +617,24 @@ pub enum OrderState {
     Cancelled(Order<order_state::Cancelled>),
 }
 
-pub enum ReplayError { NotAccepted, IllegalTransition }
+pub enum ReplayError { NotAccepted, IllegalTransition, Overfill }
 
 impl OrderState {
     /// Один шаг реплея: по событию из журнала зовём `apply` текущего состояния.
     fn step(self, event: &OrderEvent) -> Result<Self, ReplayError> {
         match (self, event) {
             (Self::Working(order), OrderEvent::Filled { price, quantity, .. }) => {
-                let (outcome, _already_journaled) = order.apply(Fill { price: *price, quantity: *quantity });
+                let (outcome, _already_journaled) = order
+                    .apply(Fill { price: *price, quantity: *quantity })
+                    .map_err(|_| ReplayError::Overfill)?;
                 Ok(match outcome {
                     FillOutcome::Partial(working) => Self::Working(working),
                     FillOutcome::Full(filled) => Self::Filled(filled),
                 })
             }
             (Self::Working(order), OrderEvent::Cancelled { reason, .. }) => {
-                let (cancelled, _already_journaled) = order.apply(Cancel { reason: *reason });
+                // `let Ok(..)` без `match`: `Error` у отмены — `Infallible`, ветки `Err` нет.
+                let Ok((cancelled, _already_journaled)) = order.apply(Cancel { reason: *reason });
                 Ok(Self::Cancelled(cancelled))
             }
             // В позиции состояния `_` нет: новый вариант `OrderState` ломает `match` (E0004).
@@ -646,13 +660,16 @@ pub fn replay(events: &[OrderEvent]) -> Result<OrderState, ReplayError> {
 Ветку `(Cancelled(order), Filled) => order.apply(Fill { .. })` в этот `match` не добавить:
 у `Order<Cancelled>` нет ни одного `impl Apply`, и компилятор не найдёт метод.
 `step` только выбирает, какой из разрешённых переходов звать,
-и возвращает `IllegalTransition`, если для пары «состояние и событие» нет `impl`.
+и возвращает `IllegalTransition`, если для пары «состояние и событие» нет `impl`,
+или `Overfill`, если `apply` отказался от исполнения сверх остатка.
+Отмену `step` разбирает через `let Ok(..)` без `match`:
+`Error` у неё `Infallible`, и ветки `Err` не существует, как у пустого `match` в части 1.
 Событие, которое `apply` возвращает вторым, уже в журнале — в `step` оно не нужно.
 
 Типы гарантируют, что наш код не запишет невозможный переход и не выполнит его при реплее.
 Журнал, пришедший извне — из другой версии сервиса, после ручной правки, с повреждённого диска, —
 всё равно проверяется в рантайме: пара «состояние и событие», для которой нет `impl`,
-становится `ReplayError`, и сигнатура это показывает.
+и исполнение сверх остатка становятся `ReplayError`, и сигнатура это показывает.
 
 ### Хорошие практики
 
@@ -707,14 +724,16 @@ Compile-time валидатор — это утверждение о списк�
 Обобщать список стоит, когда наборы проверок действительно разные;
 для одного фиксированного набора четыре вызова подряд из начала статьи читаются проще.
 
-Гарантии всех трёх частей устроены одинаково: значение заворачивается в тип,
-и тип держит то, что про значение известно.
+Гарантии всех трёх частей устроены одинаково: это обёртка,
+и всё, что известно о содержимом, записано в ней.
 `Price` из части 1 — это `Decimal` за приватным полем,
 `Valid<Checks>` из этой части — та же `IncomingOrder` плюс `PhantomData`.
-Сам `Decimal` внутри `Price` ничем не ограничен, его держит только обёртка:
-достать его можно лишь из неё, а положить в неё лишь через smart constructor.
-В части 4 выйдем за стабильный Rust: pattern types запишут ограничение прямо в тип значения
-(`u32 is 1..` вместо обёртки со smart constructor-ом),
-const traits пустят трейты в `const`-вычисления,
-gen-блоки соберут итератор фида из части 2 без ручной структуры под `Levels<'a>`,
-а never type `!` встанет в позицию типа там, где часть 1 обходилась `Infallible`.
+Сам `Decimal` внутри `Price` ничем не ограничен: ограничение проверяет smart constructor,
+а приватное поле не даёт положить значение в обёртку другим путём.
+В части 4 выйдем за стабильный Rust.
+С pattern types ограничение записывается прямо в тип значения:
+`u32 is 1..` вместо обёртки со smart constructor-ом.
+С const traits методы трейта можно вызывать в `const`-контексте.
+С gen-блоками итератор фида из части 2 пишется без ручной структуры под `Levels<'a>`.
+Never type `!`, за которым часть 1 отправляла в nightly, к тому времени уже в stable (Rust 1.100):
+покажем, как без `Infallible` выглядит `ClientOrderId`.
