@@ -727,6 +727,11 @@ dependencies = [
 [[package]]
 name = "tdd-03-validator"
 version = "0.1.0"
+dependencies = [
+ "rust_decimal",
+ "tdd-01-foundations",
+ "tdd-02-contracts",
+]
 
 [[package]]
 name = "tdd-04-nightly"

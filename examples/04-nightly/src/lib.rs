@@ -6,7 +6,7 @@
 //! Зависит от `tdd_02_contracts`: nightly-варианты показываются на тех же
 //! типах, что и стабильные обходы в части 2.
 
-#![feature(never_type)]
+// `never_type` стабилен с 1.100: на текущем nightly атрибут даёт `stable_features`.
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features)]
 

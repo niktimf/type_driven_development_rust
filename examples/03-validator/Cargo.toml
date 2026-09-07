@@ -5,3 +5,6 @@ edition = "2024"
 publish = false
 
 [dependencies]
+tdd-01-foundations = { path = "../01-foundations" }
+tdd-02-contracts = { path = "../02-contracts" }
+rust_decimal = { version = "1", features = ["macros"] }
