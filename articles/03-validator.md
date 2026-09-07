@@ -1,4 +1,4 @@
-# Type-driven development в Rust. Часть 3/5: проверяем данные ещё до запуска — type-level lists (HList), compile-time validators, event sourcing
+# Type-driven development в Rust. Часть 3/5: переносим в типы цепочку проверок и порядок событий — type-level lists (HList), compile-time validators, event sourcing
 
 В части 2 заявка уходила на площадку через контракт `ExchangeClient`:
 `DraftOrder::submit` принимал любого клиента, который его выполнил,
