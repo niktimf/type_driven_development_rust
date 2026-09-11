@@ -36,7 +36,7 @@
 - [`typestate` crate docs](https://docs.rs/typestate/) — proc-макрос DSL для typestate; версия 0.8.0 (июль 2021, с тех пор релизов нет), 42k загрузок. Проверено по crates.io 2026-08-18.
 - [`cqrs-es` crate docs](https://docs.rs/cqrs-es/) — CQRS/event sourcing: `Aggregate` с `Command`/`Event`/`Error`, `handle` с `Result`, `apply` без; версия 0.5.0 (декабрь 2025), 162k загрузок. Проверено по crates.io и docs.rs 2026-08-18.
 
-## Часть 4 — Nightly (pattern types, const traits, gen blocks, never type)
+## Часть 4 — Nightly (generic const exprs, const traits, gen blocks, pattern types)
 
 - [A grand vision for Rust — effects](https://blog.yoshuawuyts.com/a-grand-vision-for-rust/#effects) — Yosh Wuyts. О направлении языка в сторону алгебраических эффектов.
 - [Extending Rust's Effect System](https://blog.yoshuawuyts.com/extending-rusts-effect-system/) — Yosh Wuyts. Прямое продолжение «grand vision», про эффект-полиморфизм («effect generics»).

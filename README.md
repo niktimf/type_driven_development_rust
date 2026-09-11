@@ -9,7 +9,7 @@
 | 1/5 | [Основы](articles/01-foundations.md)  | ready       | newtype, ADT, uninhabited types, phantom types, typestate         |
 | 2/5 | [Контракты](articles/02-contracts.md) | ready       | traits, associated types, const generics                          |
 | 3/5 | [Валидатор](articles/03-validator.md) | ready       | type-level lists (HList), compile-time validators, event sourcing |
-| 4/5 | [Nightly](articles/04-nightly.md)     | in progress | pattern types, const traits, gen blocks, never type               |
+| 4/5 | [Nightly](articles/04-nightly.md)     | in progress | generic const exprs, const traits, gen blocks, pattern types      |
 | 5/5 | [Будущее](articles/05-future.md)      | planned     | substructural types, effects, variadic generics, view types       |
 
 ## Примеры кода
