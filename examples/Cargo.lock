@@ -737,6 +737,7 @@ dependencies = [
 name = "tdd-04-nightly"
 version = "0.1.0"
 dependencies = [
+ "rust_decimal",
  "tdd-02-contracts",
 ]
 

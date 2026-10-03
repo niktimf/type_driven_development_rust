@@ -1,7 +1,8 @@
 # Источники и ссылки
 
-> Ссылки из второй колонки агент сгенерировал по памяти без онлайн-проверки.
-> Перед публикацией статьи прогнать каждую через браузер.
+> Часть ссылок ещё требует проверки перед публикацией.
+> Источники части 4 с отметкой 2026-10-03 проверены при редактуре этой статьи.
+> Поведение примеров относится к закреплённому nightly-2026-08-31.
 
 ## Книги
 
@@ -36,11 +37,22 @@
 - [`typestate` crate docs](https://docs.rs/typestate/) — proc-макрос DSL для typestate; версия 0.8.0 (июль 2021, с тех пор релизов нет), 42k загрузок. Проверено по crates.io 2026-08-18.
 - [`cqrs-es` crate docs](https://docs.rs/cqrs-es/) — CQRS/event sourcing: `Aggregate` с `Command`/`Event`/`Error`, `handle` с `Result`, `apply` без; версия 0.5.0 (декабрь 2025), 162k загрузок. Проверено по crates.io и docs.rs 2026-08-18.
 
-## Часть 4 — Nightly (generic const exprs, const traits, gen blocks, pattern types)
+## Часть 4 — Nightly (generic const exprs, const traits, gen blocks, pattern types, never type)
 
 - [A grand vision for Rust — effects](https://blog.yoshuawuyts.com/a-grand-vision-for-rust/#effects) — Yosh Wuyts. О направлении языка в сторону алгебраических эффектов.
 - [Extending Rust's Effect System](https://blog.yoshuawuyts.com/extending-rusts-effect-system/) — Yosh Wuyts. Прямое продолжение «grand vision», про эффект-полиморфизм («effect generics»).
 - [Coroutines, async and iter](https://without.boats/blog/coroutines-async-and-iter/) — without.boats. Связь корутин, `gen`-блоков и async.
-- [RFC 3513 — gen blocks](https://github.com/rust-lang/rfcs/pull/3513) — официальный спек gen-блоков, merged 07.04.2024, резервирует `gen` в Rust 2024.
-- [MCP pattern types (types-team #126)](https://github.com/rust-lang/types-team/issues/126) — Major Change Proposal по pattern types (oli-obk, 18.01.2024). Полноценного RFC PR пока нет; формат — MCP, а не RFC.
-- [Tracking issue: const traits](https://github.com/rust-lang/rust/issues/67792) — `const_trait_impl`.
+- [RFC 3513 — gen blocks](https://github.com/rust-lang/rfcs/pull/3513) — принят 07.04.2024, резервирует `gen` в Rust 2024. Страница PR проверена 2026-10-03.
+- [`Iterator::scan`](https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.scan) — контракт замыкания, возвращающего `Option`: `None` означает конец итерации, а не пропуск входного элемента. Проверено 2026-10-03.
+- [MCP pattern types (types-team #126)](https://github.com/rust-lang/types-team/issues/126) — Major Change Proposal по pattern types; формат MCP, а не RFC. Проверено 2026-10-03.
+- [Tracking issue: pattern types, #123646](https://github.com/rust-lang/rust/issues/123646) — история реализации экспериментальной фичи. Проверено 2026-10-03.
+- [Tracking issue: const traits](https://github.com/rust-lang/rust/issues/67792) — `const_trait_impl`. Проверено 2026-10-03. Константность трейтов `std` вынесена в отдельные фичи: [`const_cmp`, #143800](https://github.com/rust-lang/rust/issues/143800) и [`const_ops`, #143802](https://github.com/rust-lang/rust/issues/143802); номера взяты из сообщений компилятора nightly-2026-08-31.
+- [Tracking issue: `generic_const_exprs`, #76560](https://github.com/rust-lang/rust/issues/76560) — проверено 2026-10-03; фича помечена `incomplete_features` в компиляторе. Несовместимость с новым trait solver — [#160895](https://github.com/rust-lang/rust/issues/160895), номер из предупреждения компилятора.
+- [`min_generic_const_args`](https://doc.rust-lang.org/unstable-book/language-features/min-generic-const-args.html) — отдельное подмножество const-аргументов для стабилизации, без произвольных выражений в аргументе. Проверено 2026-10-03.
+- [Stabilize never type — PR rust-lang/rust#155499](https://github.com/rust-lang/rust/pull/155499) — влит 24.08.2026, milestone 1.100; `Infallible` становится псевдонимом `!`. Страница PR проверена 2026-10-03.
+- [`Infallible` в nightly-документации](https://doc.rust-lang.org/nightly/std/convert/type.Infallible.html) — псевдоним `!`, рекомендация использовать never type напрямую. Проверено 2026-10-03.
+- [Project goal 2026: stabilize never type](https://goals.rust-lang.org/2026/stabilize-never-type.html) — цель проекта и история попыток. Найдена поиском 2026-09-13.
+- [I stabilized never type](https://blog.ihatereality.space/0C-never-type/) — пост автора PR #155499; оттуда счёт «пять неудачных попыток». Повторно проверено 2026-10-03.
+- [Stabilize never_type *again* — issue #57012](https://github.com/rust-lang/rust/issues/57012) — откат стабилизации для 1.41: PR #65355 и revert #67224, причина — never-type fallback. Найден поиском 2026-09-13.
+- [Tracking issue: specialization (RFC 1210), #31844](https://github.com/rust-lang/rust/issues/31844) — открыт в феврале 2016, фича не стабилизирована; для вступления. Найден поиском 2026-09-13.
+- [Rocket v0.5: stable, async, …](https://rocket.rs/news/2023-11-17-version-0.5/) — Rocket на stable с 0.5.0-rc.1 (09.06.2021), до этого требовал nightly с 2016 года; в статью не вошло, оставлено на случай, если вступление вернётся к этому примеру.

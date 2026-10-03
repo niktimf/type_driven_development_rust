@@ -6,3 +6,4 @@ publish = false
 
 [dependencies]
 tdd-02-contracts = { path = "../02-contracts" }
+rust_decimal = { version = "1", features = ["macros"] }

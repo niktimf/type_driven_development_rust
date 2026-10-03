@@ -1,21 +1,21 @@
-//! Сравнение над const-параметрами в bound-е — то, что часть 2 обходила
-//! const-блоком.
+//! Сравнение над const-параметрами в bound-е — то, что в части 2 стояло
+//! `const`-блоком в теле функции.
 //!
 //! Записать `where N <= E::MAX_BATCH` нельзя ни на каком канале: `where`
-//! принимает только баунды. На nightly `generic_const_exprs` разрешает
-//! generic-параметры внутри const-выражений, и сравнение прячут в
-//! баунд-тип: `Assert<{ N <= E::MAX_BATCH }>: IsTrue`.
+//! принимает только bound-ы. На nightly `generic_const_exprs` разрешает
+//! generic-параметры внутри const-выражений, и сравнение записывают
+//! типом в bound-е: `Assert<{ N <= E::MAX_BATCH }>: IsTrue`.
 //!
-//! Отличие от const-блока в части 2 — момент, когда приходит ошибка.
-//! Const-блок падает при инстанцировании (post-monomorphization,
-//! `cargo check` молчит); баунд проверяется на месте вызова, как любой
-//! другой, и `cargo check` его видит.
+//! Отличие от const-блока в части 2 — когда приходит ошибка.
+//! Const-блок падает при инстанцировании, после мономорфизации,
+//! и `cargo check` проходит; bound проверяется на месте вызова, как любой
+//! другой, и ошибка приходит уже на `cargo check`.
 
 use tdd_02_contracts::exchange::{Exchange, ExchangeClient};
 use tdd_02_contracts::order::DraftOrder;
 
-/// Носитель условия: тип есть только для `true` и `false`, а `IsTrue`
-/// реализован только для `Assert<true>`.
+/// Условие в виде типа: `COND` принимает `true` или `false`,
+/// а `IsTrue` реализован только для `Assert<true>`.
 pub struct Assert<const COND: bool>;
 
 pub trait IsTrue {}
