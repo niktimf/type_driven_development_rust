@@ -40,7 +40,7 @@
 ## Часть 4 — Nightly (generic const exprs, const traits, gen blocks, pattern types, never type)
 
 - [A grand vision for Rust — effects](https://blog.yoshuawuyts.com/a-grand-vision-for-rust/#effects) — Yosh Wuyts. О направлении языка в сторону алгебраических эффектов.
-- [Extending Rust's Effect System](https://blog.yoshuawuyts.com/extending-rusts-effect-system/) — Yosh Wuyts. Прямое продолжение «grand vision», про эффект-полиморфизм («effect generics»).
+- [Extending Rust's Effect System](https://blog.yoshuawuyts.com/extending-rusts-effect-system/) — Yosh Wuyts, 09.02.2024. Про обобщение по эффектам («effect generics»); опубликован до «A Grand Vision for Rust» от 05.03.2026. Даты проверены 03.10.2026.
 - [Coroutines, async and iter](https://without.boats/blog/coroutines-async-and-iter/) — without.boats. Связь корутин, `gen`-блоков и async.
 - [RFC 3513 — gen blocks](https://github.com/rust-lang/rfcs/pull/3513) — принят 07.04.2024, резервирует `gen` в Rust 2024. Страница PR проверена 2026-10-03.
 - [`Iterator::scan`](https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.scan) — контракт замыкания, возвращающего `Option`: `None` означает конец итерации, а не пропуск входного элемента. Проверено 2026-10-03.
@@ -56,3 +56,22 @@
 - [Stabilize never_type *again* — issue #57012](https://github.com/rust-lang/rust/issues/57012) — откат стабилизации для 1.41: PR #65355 и revert #67224, причина — never-type fallback. Найден поиском 2026-09-13.
 - [Tracking issue: specialization (RFC 1210), #31844](https://github.com/rust-lang/rust/issues/31844) — открыт в феврале 2016, фича не стабилизирована; для вступления. Найден поиском 2026-09-13.
 - [Rocket v0.5: stable, async, …](https://rocket.rs/news/2023-11-17-version-0.5/) — Rocket на stable с 0.5.0-rc.1 (09.06.2021), до этого требовал nightly с 2016 года; в статью не вошло, оставлено на случай, если вступление вернётся к этому примеру.
+
+## Часть 5 — Направления развития системы типов
+
+- [Immobile types and guaranteed destructors](https://goals.rust-lang.org/2026/move-trait.html) — принятая цель Rust на 2026–2027 годы: `Move`, гарантии уничтожения и запрет забывать значения. Иерархия трейтов ещё обсуждается.
+- [Tracking issue: Move trait, #149607](https://github.com/rust-lang/rust/issues/149607) — эксперимент над неподвижными типами; в описании feature gate указан как `TODO`.
+- [Move, Destruct, Forget, and Rust](https://smallcultfollowing.com/babysteps/blog/2025/10/21/move-destruct-leak/) — Niko Matsakis, 21.10.2025. Вариант дизайна с иерархией `Forget: Destruct: Move`; текущая цель проекта не принимает зависимость `Destruct: Move`.
+- [A Grand Vision for Rust](https://blog.yoshuawuyts.com/a-grand-vision-for-rust/) — Yosh Wuyts, 05.03.2026. Эффекты, affine/linear/ordered types и refinement types; авторское видение развития языка.
+- [Effects initiative](https://github.com/rust-lang/effects-initiative) — текущий репозиторий инициативы, ранее называвшейся keyword generics.
+- [View types experiment](https://goals.rust-lang.org/2026/view-types-experiment.html) — принятая цель проекта: эксперимент с несколькими синтаксисами частичных заимствований.
+- [Report on variadic generics discussions at RustWeek 2025](https://poignardazur.github.io/2025/06/07/report-on-variadics-rustweek/) — Olivier Faure, 07.06.2025. Отчёт участника обсуждения дизайна.
+- [Variadic Generics Micro Survey](https://blog.rust-lang.org/inside-rust/2025/09/22/variadic-generics-micro-survey/) — официальный сбор сценариев использования для будущего RFC.
+- [Contracts в Unstable Book](https://doc.rust-lang.org/nightly/unstable-book/language-features/contracts.html) и [`contract_checks`](https://doc.rust-lang.org/nightly/unstable-book/compiler-flags/contract-checks.html) — экспериментальные атрибуты и включение проверок в рантайме.
+- [RFC 3458: Unsafe fields](https://github.com/rust-lang/rfcs/blob/master/text/3458-unsafe-fields.md) — поля с библиотечными safety-инвариантами; [tracking issue #132922](https://github.com/rust-lang/rust/issues/132922).
+- [syn 3.0.0](https://github.com/dtolnay/syn/releases/tag/3.0.0) — источник списка в конце `CLAUDE.md`; изменения AST учитывают незавершённые предложения и не означают готовность соответствующих возможностей rustc.
+- [Function delegation, tracking issue #118212](https://github.com/rust-lang/rust/issues/118212) — эксперимент `fn_delegation`; [RFC #3530](https://github.com/rust-lang/rfcs/pull/3530) остаётся открытым. Делегирование метода трейта полю проверено на nightly-2026-08-31.
+- [Super let, tracking issue #139076](https://github.com/rust-lang/rust/issues/139076) и [реализация #139112](https://github.com/rust-lang/rust/pull/139112) — время жизни значения, объявленного во внутреннем блоке, и применение в `pin!`. Минимальный пример проверен на nightly-2026-08-31.
+- [RFC 3637: Guard patterns](https://github.com/rust-lang/rfcs/blob/master/text/3637-guard-patterns.md) — условия внутри паттернов; [tracking issue #129967](https://github.com/rust-lang/rust/issues/129967). Проба `matches!` работает на nightly-2026-08-31; использование связанной переменной в теле `if let` в проверенном примере отклоняется с E0381.
+- [Never patterns в Unstable Book](https://doc.rust-lang.org/unstable-book/language-features/never-patterns.html) — паттерн `!` для невозможного случая. Проверен на nightly-2026-08-31.
+- [Unsafe binder types, tracking issue #130516](https://github.com/rust-lang/rust/issues/130516) — эксперимент со скрытым временем жизни; первичный дизайн связан из описания issue.
