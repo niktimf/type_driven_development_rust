@@ -24,7 +24,7 @@
 У const traits и pattern types менялся синтаксис.
 При обновлении nightly примеры под `#![feature]` нужно проверять заново.
 
-## `generic_const_exprs`
+## Generic const expressions
 
 В части 2 const-параметры задавали глубину `OrderBook<DEPTH>` и длину массива `[DraftOrder; N]`.
 На stable параметр `N` можно использовать как длину массива,
