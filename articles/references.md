@@ -63,10 +63,20 @@
 - [Tracking issue: Move trait, #149607](https://github.com/rust-lang/rust/issues/149607) — эксперимент над неподвижными типами; в описании feature gate указан как `TODO`.
 - [Move, Destruct, Forget, and Rust](https://smallcultfollowing.com/babysteps/blog/2025/10/21/move-destruct-leak/) — Niko Matsakis, 21.10.2025. Вариант дизайна с иерархией `Forget: Destruct: Move`; текущая цель проекта не принимает зависимость `Destruct: Move`.
 - [A Grand Vision for Rust](https://blog.yoshuawuyts.com/a-grand-vision-for-rust/) — Yosh Wuyts, 05.03.2026. Эффекты, affine/linear/ordered types и refinement types; авторское видение развития языка.
+- [`std::pin`](https://doc.rust-lang.org/std/pin/index.html) — стабильность адреса, самоссылочные future и отличие `Unpin` от неподвижности типа. Проверено 13.10.2026.
+- [`Future::poll`](https://doc.rust-lang.org/std/future/trait.Future.html) — текущий контракт выполнения future с `Pin<&mut Self>`. Проверено 13.10.2026.
+- [Placing Functions](https://blog.yoshuawuyts.com/placing-functions/) — Yosh Wuyts. Предложение создания значений сразу в памяти вызывающего кода; синтаксис не окончательный. Проверено 13.10.2026.
+- [Ergonomic Self-Referential Types for Rust](https://blog.yoshuawuyts.com/self-referential-types/) — Yosh Wuyts, 01.07.2024. Самоссылочные состояния async-функций и развитие неподвижных типов. Проверено 14.10.2026.
+- [Why Pin is a Part of Trait Signatures (and Why That's a Problem)](https://blog.yoshuawuyts.com/why-pin/) — Yosh Wuyts, 15.10.2024. Влияние `Pin` на интерфейсы трейтов и мотивация `Move`. Проверено 14.10.2026.
 - [Effects initiative](https://github.com/rust-lang/effects-initiative) — текущий репозиторий инициативы, ранее называвшейся keyword generics.
+- [Effects initiative: Charter](https://github.com/rust-lang/effects-initiative/blob/master/CHARTER.md) — исходная задача обобщения по `async` и `const`, под названием keyword generics. Проверено 14.10.2026.
+- [Just add async](https://goals.rust-lang.org/2026/roadmap-just-add-async.html) — направление развития async-кода, включая уничтожение ресурсов и гарантии завершения. Проверено 14.10.2026.
 - [View types experiment](https://goals.rust-lang.org/2026/view-types-experiment.html) — принятая цель проекта: эксперимент с несколькими синтаксисами частичных заимствований.
+- [Maximally minimal view types, a follow-up](https://smallcultfollowing.com/babysteps/blog/2026/03/22/max-min-view-types-followup/) — Niko Matsakis, 22.03.2026. Вариант записи `Ty.{ fields }` и выборочного заимствования `self` в методах. Проверено 14.10.2026.
+- [Splitting Borrows](https://doc.rust-lang.org/nomicon/borrow-splitting.html) — Rustonomicon. Заимствования отдельных полей структуры в текущем Rust. Проверено 14.10.2026.
 - [Report on variadic generics discussions at RustWeek 2025](https://poignardazur.github.io/2025/06/07/report-on-variadics-rustweek/) — Olivier Faure, 07.06.2025. Отчёт участника обсуждения дизайна.
 - [Variadic Generics Micro Survey](https://blog.rust-lang.org/inside-rust/2025/09/22/variadic-generics-micro-survey/) — официальный сбор сценариев использования для будущего RFC.
+- [Variadic Generics: design notes](https://github.com/rust-lang/lang-team/blob/main/src/design_notes/variadic_generics.md) — обзор lang-team, включая вариант Cramertj с `Tuple` и разбором `(Head, ...Tail)`. Проверено 19.10.2026.
 - [Contracts в Unstable Book](https://doc.rust-lang.org/nightly/unstable-book/language-features/contracts.html) и [`contract_checks`](https://doc.rust-lang.org/nightly/unstable-book/compiler-flags/contract-checks.html) — экспериментальные атрибуты и включение проверок в рантайме.
 - [RFC 3458: Unsafe fields](https://github.com/rust-lang/rfcs/blob/master/text/3458-unsafe-fields.md) — поля с библиотечными safety-инвариантами; [tracking issue #132922](https://github.com/rust-lang/rust/issues/132922).
 - [syn 3.0.0](https://github.com/dtolnay/syn/releases/tag/3.0.0) — источник списка в конце `CLAUDE.md`; изменения AST учитывают незавершённые предложения и не означают готовность соответствующих возможностей rustc.
