@@ -10,11 +10,13 @@
 | 2/5 | [Контракты](articles/02-contracts.md) | ready       | traits, associated types, const generics                          |
 | 3/5 | [Валидатор](articles/03-validator.md) | ready       | type-level lists (HList), compile-time validators, event sourcing |
 | 4/5 | [Nightly](articles/04-nightly.md)     | in progress | generic const exprs, const traits, gen blocks, pattern types      |
-| 5/5 | [Будущее](articles/05-future.md)      | planned     | substructural types, effects, variadic generics, view types       |
+| 5/5 | [Будущее](articles/05-future.md)      | ready       | substructural types, effects, variadic generics, view types       |
 
 ## Примеры кода
 
-В каталоге `examples/` лежит Cargo workspace с четырьмя крейтами — по одному на части 1–4 (у Части 5 кода пока нет). Стабильные крейты собираются из корня воркспейса:
+В каталоге `examples/` лежит Cargo workspace с четырьмя крейтами — по одному на части 1–4.
+Отдельного крейта для части 5 нет.
+Стабильные крейты собираются из корня воркспейса:
 
 ```sh
 cd examples
